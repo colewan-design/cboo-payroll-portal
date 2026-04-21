@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "bsu-cboo-payroll-portal",
+    "name": "BSU CBOO Payroll",
     "slug": "bsu-cboo-payroll-portal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/bsu-logo.png",
     "scheme": "bsucboopayrollportal",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,13 +13,13 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
+        "backgroundColor": "#1B5E20",
+        "foregroundImage": "./assets/images/bsu-logo.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.teekunana.bsucboopayrollportal"
     },
     "web": {
       "output": "static",
@@ -30,19 +30,27 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/bsu-logo.png",
+          "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#1B5E20",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#1B5E20"
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ea9bac0d-ba93-4d61-b4f1-511b7195695f"
+      }
+    },
+    "owner": "teekunana"
   }
 }
