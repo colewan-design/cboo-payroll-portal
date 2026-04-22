@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 
 type InfoRowProps = {
@@ -26,6 +27,7 @@ function InfoRow({ label, value }: InfoRowProps) {
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
 
   function confirmLogout() {
@@ -101,6 +103,14 @@ export default function ProfileScreen() {
             </View>
           </View>
         ) : null}
+        <TouchableOpacity
+          style={styles.changePasswordRow}
+          onPress={() => router.push('/change-password')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.changePasswordText}>Change Password</Text>
+          <Text style={styles.changePasswordChevron}>›</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Sign Out */}
@@ -196,6 +206,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   roleChipText: { fontSize: 12, color: '#1B5E20', fontWeight: '600' },
+
+  changePasswordRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  changePasswordText: { fontSize: 13, fontWeight: '600', color: '#1B5E20' },
+  changePasswordChevron: { fontSize: 20, color: '#9ca3af', lineHeight: 22 },
 
   logoutBtn: {
     backgroundColor: '#dc2626',

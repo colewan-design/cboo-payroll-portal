@@ -34,6 +34,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="announcements"
+        options={{
+          title: 'Announcements',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="bell.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

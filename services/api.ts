@@ -21,4 +21,29 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+export const getAnnouncements = (page = 1) =>
+  api.get('/api/announcements', { params: { page } });
+
+export const getAnnouncement = (id: number) =>
+  api.get(`/api/announcements/${id}`);
+
+export const registerDeviceToken = (token: string, platform: 'android' | 'ios') =>
+  api.post('/api/device-token', { token, platform });
+
+export const removeDeviceToken = (token: string) =>
+  api.delete('/api/device-token', { data: { token } });
+
+export const getPayslipBreakdown = (id: number) =>
+  api.get(`/api/employee/payslip/breakdown/${id}`);
+
+export const changePassword = (
+  currentPassword: string,
+  newPassword: string,
+) =>
+  api.post('/api/user/change-password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+    new_password_confirmation: newPassword,
+  });
+
 export default api;

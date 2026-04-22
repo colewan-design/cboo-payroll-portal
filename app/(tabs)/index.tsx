@@ -11,7 +11,8 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import api from '@/services/api';
+import api, { getAnnouncements } from '@/services/api';
+import { Announcement } from '@/components/AnnouncementCard';
 
 type Payslip = {
   id: number;
@@ -36,6 +37,7 @@ export default function DashboardScreen() {
 
   const [recentPayslips, setRecentPayslips] = useState<Payslip[]>([]);
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
+  const [latestAnnouncement, setLatestAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -45,11 +47,12 @@ export default function DashboardScreen() {
       return;
     }
     try {
-      const [payslipRes, profileRes] = await Promise.allSettled([
+      const [payslipRes, profileRes, announcementRes] = await Promise.allSettled([
         api.get('/api/employee/payslips', {
           params: { selectedEmployeeId: user.employee_id },
         }),
         api.get('/api/employee/me'),
+        getAnnouncements(1),
       ]);
 
       if (payslipRes.status === 'fulfilled') {
@@ -58,6 +61,10 @@ export default function DashboardScreen() {
       }
       if (profileRes.status === 'fulfilled') {
         setProfile(profileRes.value.data);
+      }
+      if (announcementRes.status === 'fulfilled') {
+        const first = announcementRes.value.data?.data?.[0] ?? null;
+        setLatestAnnouncement(first);
       }
     } catch {
       // silently ignore — individual settled results handled above
@@ -218,6 +225,35 @@ export default function DashboardScreen() {
         )}
       </View>
 
+      {/* ── Latest Announcement ── */}
+      {latestAnnouncement ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Latest Announcement</Text>
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <TouchableOpacity onPress={() => router.push('/(tabs)/announcements' as any)}>
+              <Text style={styles.seeAll}>View All →</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={styles.announcementCard}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onPress={() => router.push(`/announcement/${latestAnnouncement.id}` as any)}
+            activeOpacity={0.75}
+          >
+            {latestAnnouncement.is_pinned ? (
+              <Text style={styles.announcementPin}>📌 Pinned</Text>
+            ) : null}
+            <Text style={styles.announcementTitle} numberOfLines={2}>
+              {latestAnnouncement.title}
+            </Text>
+            <Text style={styles.announcementPreview} numberOfLines={2}>
+              {latestAnnouncement.content.replace(/<[^>]*>/g, '').trim()}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {/* ── Quick Actions ── */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>Quick Actions</Text>
@@ -229,6 +265,14 @@ export default function DashboardScreen() {
           >
             <Text style={styles.actionIcon}>📄</Text>
             <Text style={styles.actionLabel}>My Payslips</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionCard}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onPress={() => router.push('/(tabs)/announcements' as any)}
+          >
+            <Text style={styles.actionIcon}>📢</Text>
+            <Text style={styles.actionLabel}>Announcements</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionCard}
@@ -340,5 +384,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0',
   },
   actionIcon: { fontSize: 28, marginBottom: 8 },
-  actionLabel: { fontSize: 13, fontWeight: '600', color: '#334155' },
+  actionLabel: { fontSize: 13, fontWeight: '600', color: '#334155', textAlign: 'center' },
+
+  announcementCard: {
+    backgroundColor: '#f0fdf4', borderRadius: 10,
+    padding: 14, borderWidth: 1, borderColor: '#bbf7d0',
+  },
+  announcementPin: { fontSize: 11, color: '#92400e', fontWeight: '600', marginBottom: 4 },
+  announcementTitle: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  announcementPreview: { fontSize: 13, color: '#6b7280', lineHeight: 19 },
 });

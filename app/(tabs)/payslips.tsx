@@ -18,6 +18,7 @@ import * as Sharing from 'expo-sharing';
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '@/context/AuthContext';
 import api, { TOKEN_KEY } from '@/services/api';
+import { useRouter } from 'expo-router';
 import { API_BASE_URL } from '@/constants/api';
 
 type Payslip = {
@@ -46,6 +47,7 @@ type SalaryInfo = {
 };
 
 function DetailModal({ payslip, onClose }: DetailModalProps) {
+  const router = useRouter();
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [salaryInfo, setSalaryInfo] = useState<SalaryInfo | null>(null);
@@ -205,6 +207,17 @@ function DetailModal({ payslip, onClose }: DetailModalProps) {
                 <Text style={modal.progressText}>{Math.round(progress * 100)}%</Text>
               </View>
             )}
+
+            <TouchableOpacity
+              style={modal.breakdownBtn}
+              onPress={() => {
+                onClose();
+                router.push(`/payslip/${item.id}?name=${encodeURIComponent(item.payslip_name)}` as never);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={modal.breakdownBtnText}>📊  View Salary Breakdown</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[modal.downloadBtn, downloading && modal.downloadBtnDisabled]}
@@ -598,6 +611,13 @@ const modal = StyleSheet.create({
   },
   progressFill: { height: '100%', backgroundColor: '#B8940A', borderRadius: 4 },
   progressText: { fontSize: 12, color: '#B8940A', fontWeight: '700', width: 36 },
+
+  breakdownBtn: {
+    backgroundColor: '#E8F5E9', borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center', marginBottom: 10,
+    borderWidth: 1, borderColor: '#A5D6A7',
+  },
+  breakdownBtnText: { color: '#1B5E20', fontSize: 15, fontWeight: '700' },
 
   downloadBtn: {
     backgroundColor: '#1B5E20', borderRadius: 12,

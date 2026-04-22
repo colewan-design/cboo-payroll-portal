@@ -21,6 +21,7 @@ const MAPPING = {
   'doc.text.fill': 'article',
   'person.fill': 'person',
   'person.circle.fill': 'account-circle',
+  'bell.fill': 'notifications',
 } as IconMapping;
 
 /**
