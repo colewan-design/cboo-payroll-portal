@@ -5,7 +5,7 @@ import React, {
   useEffect,
   type PropsWithChildren,
 } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import * as storage from '@/services/storage';
 import api, { TOKEN_KEY } from '@/services/api';
 
 export type Role = {
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   async function loadStoredSession() {
     try {
-      const stored = await SecureStore.getItemAsync(TOKEN_KEY);
+      const stored = await storage.getItem(TOKEN_KEY);
       if (stored) {
         const res = await api.get('/api/user', {
           headers: { Authorization: `Bearer ${stored}` },
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUser(res.data.data);
       }
     } catch {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await storage.deleteItem(TOKEN_KEY);
     } finally {
       setIsLoading(false);
     }
@@ -68,13 +68,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     // Use the dedicated stateless API endpoint — no session/CSRF involved
     const res = await api.post('/api/auth/login', { email, password });
     const { token: newToken, user: newUser } = res.data;
-    await SecureStore.setItemAsync(TOKEN_KEY, newToken);
+    await storage.setItem(TOKEN_KEY, newToken);
     setToken(newToken);
     setUser(newUser);
   }
 
   async function logout() {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await storage.deleteItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
   }

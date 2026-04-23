@@ -9,8 +9,10 @@ import {
   Platform,
 } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import AnnouncementCard, { Announcement } from '@/components/AnnouncementCard';
 import { getAnnouncements } from '@/services/api';
+import { BSU } from '@/constants/theme';
 
 export default function AnnouncementsScreen() {
   const [items, setItems] = useState<Announcement[]>([]);
@@ -53,27 +55,45 @@ export default function AnnouncementsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1B5E20" />
+      <View style={styles.root}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Announcements</Text>
+        </View>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={BSU.green} />
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Could not load announcements.</Text>
-        <TouchableOpacity onPress={() => { setLoading(true); fetchPage(1, true).finally(() => setLoading(false)); }}>
-          <Text style={styles.retryText}>Tap to retry</Text>
-        </TouchableOpacity>
+      <View style={styles.root}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Announcements</Text>
+        </View>
+        <View style={styles.center}>
+          <Ionicons name="cloud-offline-outline" size={48} color="#d1d5db" />
+          <Text style={styles.errorText}>Could not load announcements.</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => { setLoading(true); fetchPage(1, true).finally(() => setLoading(false)); }}
+          >
+            <Ionicons name="refresh-outline" size={15} color="#fff" />
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Announcements</Text>
+        {items.length > 0 ? (
+          <Text style={styles.headerSub}>{items.length} post{items.length !== 1 ? 's' : ''}</Text>
+        ) : null}
       </View>
 
       <FlatList
@@ -82,18 +102,20 @@ export default function AnnouncementsScreen() {
         renderItem={({ item }) => <AnnouncementCard item={item} />}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1B5E20" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BSU.green} />
         }
         onEndReached={onEndReached}
         onEndReachedThreshold={0.3}
         ListEmptyComponent={
-          <View style={styles.emptyBox}>
+          <View style={styles.center}>
+            <Ionicons name="megaphone-outline" size={48} color="#d1d5db" />
             <Text style={styles.emptyText}>No announcements yet.</Text>
+            <Text style={styles.emptySubtext}>Check back later for updates.</Text>
           </View>
         }
         ListFooterComponent={
           loadingMore
-            ? <ActivityIndicator color="#1B5E20" style={{ paddingVertical: 16 }} />
+            ? <ActivityIndicator color={BSU.green} style={{ paddingVertical: 20 }} />
             : null
         }
       />
@@ -102,18 +124,24 @@ export default function AnnouncementsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  root: { flex: 1, backgroundColor: '#f1f5f9' },
   header: {
-    backgroundColor: '#1B5E20',
+    backgroundColor: BSU.green,
     paddingTop: Platform.OS === 'ios' ? 56 : 48,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+  headerSub: { fontSize: 12, color: BSU.textOnGreen, marginTop: 4 },
   list: { padding: 16, paddingBottom: 32 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  errorText: { fontSize: 14, color: '#6b7280', marginBottom: 8, textAlign: 'center' },
-  retryText: { fontSize: 14, color: '#1B5E20', fontWeight: '600' },
-  emptyBox: { alignItems: 'center', paddingVertical: 40 },
-  emptyText: { fontSize: 14, color: '#6b7280' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
+  errorText: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
+  retryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: BSU.green, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
+    marginTop: 4,
+  },
+  retryText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+  emptyText: { fontSize: 16, fontWeight: '700', color: '#374151' },
+  emptySubtext: { fontSize: 13, color: '#9ca3af' },
 });

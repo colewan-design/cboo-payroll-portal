@@ -7,6 +7,11 @@
     "icon": "./assets/images/bsu-logo.png",
     "scheme": "bsucboopayrollportal",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/bsu-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B5E20"
+    },
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true

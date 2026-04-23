@@ -1,22 +1,38 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import messaging from '@react-native-firebase/messaging';
+import * as SplashScreen from 'expo-splash-screen';
+import { Platform } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { registerForPushNotifications } from '@/services/notifications';
+import AnimatedSplash from '@/components/AnimatedSplash';
 
-// Handle notifications received while app is in background/quit state
-messaging().setBackgroundMessageHandler(async () => {});
+// Keep native splash visible until we are ready to replace it
+SplashScreen.preventAutoHideAsync();
+
+// Background handler must run at module level on native only
+if (Platform.OS !== 'web') {
+  messaging().setBackgroundMessageHandler(async () => {});
+}
 
 function RootLayoutNav() {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
+
+  // Once auth resolves, hide the native splash and hand off to the animated one
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -30,14 +46,12 @@ function RootLayoutNav() {
   }, [user, isLoading, segments]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || Platform.OS === 'web') return;
 
-    // Register FCM token with backend
     registerForPushNotifications().catch((err) => {
       console.error('[Push] registration failed:', err);
     });
 
-    // Foreground message — navigate directly to announcement
     const unsubForeground = messaging().onMessage(async (remoteMessage) => {
       const id = remoteMessage.data?.announcement_id;
       if (id) {
@@ -46,7 +60,6 @@ function RootLayoutNav() {
       }
     });
 
-    // App opened from background notification tap
     const unsubOpened = messaging().onNotificationOpenedApp((remoteMessage) => {
       const id = remoteMessage.data?.announcement_id;
       if (id) {
@@ -55,7 +68,6 @@ function RootLayoutNav() {
       }
     });
 
-    // App opened from quit state via notification tap
     messaging()
       .getInitialNotification()
       .then((remoteMessage) => {
@@ -79,7 +91,12 @@ function RootLayoutNav() {
         <Stack.Screen name="announcement" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: 'Info' }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
+
+      {/* Animated splash sits on top of everything until its animation finishes */}
+      {showAnimatedSplash && !isLoading && (
+        <AnimatedSplash onFinish={() => setShowAnimatedSplash(false)} />
+      )}
     </ThemeProvider>
   );
 }

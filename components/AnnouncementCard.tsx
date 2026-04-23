@@ -1,5 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { BSU } from '@/constants/theme';
 
 export type Announcement = {
   id: number;
@@ -40,19 +42,27 @@ export default function AnnouncementCard({ item }: { item: Announcement }) {
       <View style={styles.body}>
         {item.is_pinned ? (
           <View style={styles.pinBadge}>
-            <Text style={styles.pinText}>📌 Pinned</Text>
+            <Ionicons name="pin" size={10} color={BSU.goldDark} />
+            <Text style={styles.pinText}> Pinned</Text>
           </View>
         ) : null}
 
         <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
 
-        <Text style={styles.preview} numberOfLines={2}>
+        <Text style={styles.preview} numberOfLines={3}>
           {stripHtml(item.content)}
         </Text>
 
-        <Text style={styles.date}>
-          {formatDate(item.published_at ?? item.created_at)}
-        </Text>
+        <View style={styles.footer}>
+          <View style={styles.dateRow}>
+            <Ionicons name="calendar-outline" size={11} color="#9ca3af" />
+            <Text style={styles.date}> {formatDate(item.published_at ?? item.created_at)}</Text>
+          </View>
+          <View style={styles.readMoreRow}>
+            <Text style={styles.readMore}>Read more</Text>
+            <Ionicons name="arrow-forward" size={12} color={BSU.green} />
+          </View>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -61,26 +71,31 @@ export default function AnnouncementCard({ item }: { item: Announcement }) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 12,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  thumbnail: { width: '100%', height: 160 },
-  body: { padding: 14 },
+  thumbnail: { width: '100%', height: 168 },
+  body: { padding: 16 },
   pinBadge: {
+    flexDirection: 'row', alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#fef9c3',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginBottom: 6,
+    backgroundColor: '#fffbeb',
+    borderRadius: 20, borderWidth: 1, borderColor: '#fde68a',
+    paddingHorizontal: 10, paddingVertical: 4,
+    marginBottom: 10,
   },
-  pinText: { fontSize: 11, color: '#92400e', fontWeight: '600' },
-  title: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  preview: { fontSize: 13, color: '#6b7280', lineHeight: 20, marginBottom: 8 },
+  pinText: { fontSize: 11, color: BSU.goldDark, fontWeight: '700' },
+  title: { fontSize: 15, fontWeight: '700', color: '#111827', lineHeight: 22, marginBottom: 6 },
+  preview: { fontSize: 13, color: '#6b7280', lineHeight: 20, marginBottom: 12 },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  dateRow: { flexDirection: 'row', alignItems: 'center' },
   date: { fontSize: 11, color: '#9ca3af', fontWeight: '500' },
+  readMoreRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  readMore: { fontSize: 12, fontWeight: '700', color: BSU.green },
 });
