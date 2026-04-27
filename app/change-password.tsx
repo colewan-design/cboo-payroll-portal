@@ -12,10 +12,14 @@ import {
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { changePassword } from '@/services/api';
+import { TEAL, useAppTheme, AppTheme } from '@/constants/theme';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const theme = useAppTheme();
+  const styles = makeStyles(theme);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -56,37 +60,33 @@ export default function ChangePasswordScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>Change Password</Text>
+          <Text style={styles.headerSub}>Update your account password</Text>
+        </View>
+      </View>
+
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.heading}>Change Password</Text>
-        <Text style={styles.subheading}>
-          Enter your current password, then choose a new one.
-        </Text>
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle-outline" size={16} color={TEAL.primary} />
+          <Text style={styles.infoText}>
+            Enter your current password, then choose a new one that is at least 8 characters.
+          </Text>
+        </View>
 
-        <Field
-          label="Current Password"
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          error={errors.currentPassword}
-          secureTextEntry
-        />
-        <Field
-          label="New Password"
-          value={newPassword}
-          onChangeText={setNewPassword}
-          error={errors.newPassword}
-          secureTextEntry
-        />
-        <Field
-          label="Confirm New Password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          error={errors.confirmPassword}
-          secureTextEntry
-        />
+        <View style={styles.section}>
+          <Field label="Current Password" value={currentPassword} onChangeText={setCurrentPassword} error={errors.currentPassword} secureTextEntry theme={theme} />
+          <Field label="New Password" value={newPassword} onChangeText={setNewPassword} error={errors.newPassword} secureTextEntry theme={theme} />
+          <Field label="Confirm New Password" value={confirmPassword} onChangeText={setConfirmPassword} error={errors.confirmPassword} secureTextEntry last theme={theme} />
+        </View>
 
         <TouchableOpacity
           style={[styles.btn, loading && styles.btnDisabled]}
@@ -95,11 +95,16 @@ export default function ChangePasswordScreen() {
           activeOpacity={0.8}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.btnText}>Update Password</Text>
+            <>
+              <Ionicons name="lock-closed-outline" size={18} color="#fff" />
+              <Text style={styles.btnText}>Update Password</Text>
+            </>
           )}
         </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -111,70 +116,89 @@ type FieldProps = {
   onChangeText: (v: string) => void;
   error?: string;
   secureTextEntry?: boolean;
+  last?: boolean;
+  theme: AppTheme;
 };
 
-function Field({ label, value, onChangeText, error, secureTextEntry }: FieldProps) {
+function Field({ label, value, onChangeText, error, secureTextEntry, last, theme }: FieldProps) {
+  const s = makeStyles(theme);
   return (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[s.fieldWrap, !last && { borderBottomWidth: 1, borderBottomColor: theme.divider }]}>
+      <Text style={s.label}>{label}</Text>
       <TextInput
-        style={[styles.input, !!error && styles.inputError]}
+        style={[s.input, !!error && s.inputError]}
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         autoCapitalize="none"
         autoCorrect={false}
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={theme.textMuted}
       />
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? (
+        <View style={s.errorRow}>
+          <Ionicons name="alert-circle-outline" size={13} color="#dc2626" />
+          <Text style={s.errorText}> {error}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  content: { padding: 20, paddingTop: 32 },
+function makeStyles(t: AppTheme) {
+  return StyleSheet.create({
+    header: {
+      backgroundColor: TEAL.primary,
+      paddingTop: Platform.OS === 'ios' ? 56 : 48,
+      paddingBottom: 20,
+      paddingHorizontal: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    headerText: { flex: 1 },
+    headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+    headerSub: { fontSize: 12, color: TEAL.textSub, marginTop: 2 },
 
-  heading: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 6,
-  },
-  subheading: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 28,
-    lineHeight: 19,
-  },
+    container: { flex: 1, backgroundColor: t.bg },
+    content: { padding: 16, paddingTop: 20 },
 
-  fieldWrap: { marginBottom: 20 },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#111827',
-  },
-  inputError: { borderColor: '#dc2626' },
-  errorText: { fontSize: 12, color: '#dc2626', marginTop: 4 },
+    infoCard: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+      backgroundColor: t.primaryLight, borderRadius: 12,
+      borderWidth: 0.5, borderColor: t.cardBorder,
+      padding: 12, marginBottom: 16,
+    },
+    infoText: { flex: 1, fontSize: 13, color: t.primaryDarker, lineHeight: 18 },
 
-  btn: {
-    backgroundColor: '#1B5E20',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-});
+    section: {
+      backgroundColor: t.cardBg, borderRadius: 16, marginBottom: 16,
+      borderWidth: 0.5, borderColor: t.cardBorder, overflow: 'hidden',
+    },
+
+    fieldWrap: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },
+    label: { fontSize: 13, fontWeight: '600', color: t.textSecondary, marginBottom: 8 },
+    input: {
+      backgroundColor: t.inputBg,
+      borderWidth: 0.5, borderColor: t.inputBorder,
+      borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12,
+      fontSize: 15, color: t.textPrimary,
+    },
+    inputError: { borderColor: '#dc2626' },
+    errorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+    errorText: { fontSize: 12, color: '#dc2626' },
+
+    btn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      backgroundColor: TEAL.primary, borderRadius: 14,
+      paddingVertical: 15, marginBottom: 12,
+    },
+    btnDisabled: { opacity: 0.6 },
+    btnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  });
+}

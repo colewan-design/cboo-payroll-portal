@@ -20,7 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import api, { TOKEN_KEY } from '@/services/api';
 import { useRouter } from 'expo-router';
 import { API_BASE_URL } from '@/constants/api';
-import { BSU } from '@/constants/theme';
+import { BSU, TEAL, useAppTheme, AppTheme } from '@/constants/theme';
 import { getItem } from '@/services/storage';
 
 type Payslip = {
@@ -41,6 +41,8 @@ type SalaryInfo = { salary_grade: number | null; step: number | null; basic_sala
 
 function DetailModal({ payslip, onClose }: { payslip: Payslip | null; onClose: () => void }) {
   const router = useRouter();
+  const theme = useAppTheme();
+  const modal = makeModalStyles(theme);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [salaryInfo, setSalaryInfo] = useState<SalaryInfo | null>(null);
@@ -114,22 +116,20 @@ function DetailModal({ payslip, onClose }: { payslip: Payslip | null; onClose: (
         <View style={modal.sheet}>
           <View style={modal.handle} />
 
-          {/* Sheet header */}
           <View style={modal.header}>
             <View style={modal.headerIconWrap}>
-              <Ionicons name="document-text-outline" size={22} color={BSU.green} />
+              <Ionicons name="document-text-outline" size={22} color={TEAL.primary} />
             </View>
             <View style={modal.headerText}>
               <Text style={modal.title} numberOfLines={2}>{payslip.payslip_name}</Text>
               <Text style={modal.subtitle}>{payslip.payslip_type} · {payslip.payroll_year}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={modal.closeBtn} hitSlop={10}>
-              <Ionicons name="close-circle" size={24} color="#d1d5db" />
+              <Ionicons name="close-circle" size={24} color={theme.textMuted} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={modal.body} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
-            {/* Details */}
             <Text style={modal.sectionLabel}>Payslip Details</Text>
             <View style={modal.detailCard}>
               {rows.map((row, i) => (
@@ -140,12 +140,11 @@ function DetailModal({ payslip, onClose }: { payslip: Payslip | null; onClose: (
               ))}
             </View>
 
-            {/* Compensation */}
             <Text style={[modal.sectionLabel, { marginTop: 16 }]}>Compensation</Text>
             <View style={modal.detailCard}>
               {salaryLoading ? (
                 <View style={modal.detailRow}>
-                  <ActivityIndicator size="small" color={BSU.green} />
+                  <ActivityIndicator size="small" color={TEAL.primary} />
                 </View>
               ) : (
                 <>
@@ -165,7 +164,6 @@ function DetailModal({ payslip, onClose }: { payslip: Payslip | null; onClose: (
               )}
             </View>
 
-            {/* Progress bar */}
             {downloading && progress > 0 && (
               <View style={modal.progressWrap}>
                 <View style={modal.progressBar}>
@@ -175,7 +173,6 @@ function DetailModal({ payslip, onClose }: { payslip: Payslip | null; onClose: (
               </View>
             )}
 
-            {/* Actions */}
             <TouchableOpacity
               style={modal.secondaryBtn}
               onPress={() => {
@@ -184,7 +181,7 @@ function DetailModal({ payslip, onClose }: { payslip: Payslip | null; onClose: (
               }}
               activeOpacity={0.8}
             >
-              <Ionicons name="bar-chart-outline" size={18} color={BSU.green} />
+              <Ionicons name="bar-chart-outline" size={18} color={TEAL.primary} />
               <Text style={modal.secondaryBtnText}>View Salary Breakdown</Text>
             </TouchableOpacity>
 
@@ -222,10 +219,12 @@ function DetailModal({ payslip, onClose }: { payslip: Payslip | null; onClose: (
 // ─── Payslip Card ─────────────────────────────────────────────────────────────
 
 function PayslipCard({ payslip, onPress }: { payslip: Payslip; onPress: () => void }) {
+  const theme = useAppTheme();
+  const styles = makeStyles(theme);
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.cardIconWrap}>
-        <Ionicons name="document-text-outline" size={22} color={BSU.green} />
+        <Ionicons name="document-text-outline" size={22} color={TEAL.primary} />
       </View>
       <View style={styles.cardBody}>
         <Text style={styles.cardName} numberOfLines={2}>{payslip.payslip_name}</Text>
@@ -234,7 +233,7 @@ function PayslipCard({ payslip, onPress }: { payslip: Payslip; onPress: () => vo
           {[payslip.payroll_month, payslip.payroll_year].filter(Boolean).join(' · ')}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#d1d5db" />
+      <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -243,6 +242,8 @@ function PayslipCard({ payslip, onPress }: { payslip: Payslip; onPress: () => vo
 
 export default function PayslipsScreen() {
   const { user } = useAuth();
+  const theme = useAppTheme();
+  const styles = makeStyles(theme);
 
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [availableYears, setAvailableYears] = useState<string[]>([]);
@@ -299,7 +300,7 @@ export default function PayslipsScreen() {
           <Text style={styles.headerTitle}>My Payslips</Text>
         </View>
         <View style={styles.centered}>
-          <Ionicons name="warning-outline" size={48} color="#d1d5db" />
+          <Ionicons name="warning-outline" size={48} color={theme.textMuted} />
           <Text style={styles.emptyTitle}>No employee record linked</Text>
           <Text style={styles.emptySubtext}>
             Your account ({user?.email}) does not have an employee ID assigned.
@@ -312,7 +313,6 @@ export default function PayslipsScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Payslips</Text>
         <Text style={styles.headerSub}>
@@ -320,7 +320,6 @@ export default function PayslipsScreen() {
         </Text>
       </View>
 
-      {/* Filters */}
       <View style={styles.filtersBox}>
         <Text style={styles.filterLabel}>Year</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
@@ -359,11 +358,11 @@ export default function PayslipsScreen() {
         )}
 
         <View style={styles.searchWrap}>
-          <Ionicons name="search-outline" size={16} color="#9ca3af" style={styles.searchIcon} />
+          <Ionicons name="search-outline" size={16} color={theme.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search payslips…"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={theme.textMuted}
             value={search}
             onChangeText={setSearch}
             returnKeyType="search"
@@ -372,7 +371,6 @@ export default function PayslipsScreen() {
         </View>
       </View>
 
-      {/* Count badge */}
       {!loading && !error && (
         <View style={styles.countRow}>
           <Text style={styles.countText}>
@@ -382,15 +380,14 @@ export default function PayslipsScreen() {
         </View>
       )}
 
-      {/* Content */}
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator color={BSU.green} size="large" />
+          <ActivityIndicator color={TEAL.primary} size="large" />
           <Text style={styles.loadingText}>Loading payslips…</Text>
         </View>
       ) : error ? (
         <View style={styles.centered}>
-          <Ionicons name="cloud-offline-outline" size={48} color="#d1d5db" />
+          <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
           <Text style={styles.emptyTitle}>Could not load payslips</Text>
           <Text style={styles.emptySubtext}>{error}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => fetchPayslips()}>
@@ -403,10 +400,10 @@ export default function PayslipsScreen() {
           data={payslips}
           keyExtractor={item => String(item.id)}
           contentContainerStyle={payslips.length === 0 ? styles.emptyFlex : { paddingTop: 8, paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BSU.green} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TEAL.primary} />}
           ListEmptyComponent={
             <View style={styles.centered}>
-              <Ionicons name="folder-open-outline" size={48} color="#d1d5db" />
+              <Ionicons name="folder-open-outline" size={48} color={theme.textMuted} />
               <Text style={styles.emptyTitle}>No payslips found</Text>
               <Text style={styles.emptySubtext}>
                 {search
@@ -432,145 +429,146 @@ export default function PayslipsScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f1f5f9' },
+function makeStyles(t: AppTheme) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.bg },
 
-  header: {
-    backgroundColor: BSU.green,
-    paddingTop: Platform.OS === 'ios' ? 56 : 48,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: BSU.textOnGreen, marginTop: 4 },
+    header: {
+      backgroundColor: TEAL.primary,
+      paddingTop: Platform.OS === 'ios' ? 56 : 48,
+      paddingBottom: 20, paddingHorizontal: 20,
+    },
+    headerTitle: { fontSize: 22, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+    headerSub: { fontSize: 12, color: TEAL.textSub, marginTop: 4 },
 
-  filtersBox: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10,
-    borderBottomWidth: 1, borderBottomColor: '#e5e7eb',
-  },
-  filterLabel: {
-    fontSize: 10, fontWeight: '700', color: '#9ca3af',
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
-  },
-  chipRow: { flexDirection: 'row', gap: 6, paddingRight: 16 },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
-    borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb',
-  },
-  chipActive: { backgroundColor: BSU.green, borderColor: BSU.green },
-  chipText: { fontSize: 12, color: '#374151', fontWeight: '500' },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
+    filtersBox: {
+      backgroundColor: t.cardBg,
+      paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10,
+      borderBottomWidth: 0.5, borderBottomColor: t.cardBorder,
+    },
+    filterLabel: {
+      fontSize: 10, fontWeight: '700', color: t.textMuted,
+      textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
+    },
+    chipRow: { flexDirection: 'row', gap: 6, paddingRight: 16 },
+    chip: {
+      paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+      borderWidth: 0.5, borderColor: t.cardBorder, backgroundColor: t.inputBg,
+    },
+    chipActive: { backgroundColor: TEAL.primary, borderColor: TEAL.primary },
+    chipText: { fontSize: 12, color: t.textSecondary, fontWeight: '500' },
+    chipTextActive: { color: '#fff', fontWeight: '700' },
 
-  searchWrap: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10,
-    backgroundColor: '#f9fafb', paddingHorizontal: 10, marginTop: 4,
-  },
-  searchIcon: { marginRight: 6 },
-  searchInput: {
-    flex: 1,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
-    fontSize: 14, color: '#111827',
-  },
+    searchWrap: {
+      flexDirection: 'row', alignItems: 'center',
+      borderWidth: 0.5, borderColor: t.inputBorder, borderRadius: 10,
+      backgroundColor: t.inputBg, paddingHorizontal: 10, marginTop: 4,
+    },
+    searchIcon: { marginRight: 6 },
+    searchInput: {
+      flex: 1, paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+      fontSize: 14, color: t.textPrimary,
+    },
 
-  countRow: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 },
-  countText: { fontSize: 12, color: '#9ca3af', fontWeight: '500' },
+    countRow: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 2 },
+    countText: { fontSize: 12, color: t.textMuted, fontWeight: '500' },
 
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 48, gap: 8 },
-  emptyFlex: { flex: 1 },
-  loadingText: { fontSize: 14, color: '#9ca3af', marginTop: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#374151', textAlign: 'center' },
-  emptySubtext: { fontSize: 13, color: '#9ca3af', textAlign: 'center', lineHeight: 20 },
+    centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, paddingVertical: 48, gap: 8 },
+    emptyFlex: { flex: 1 },
+    loadingText: { fontSize: 14, color: t.textMuted, marginTop: 8 },
+    emptyTitle: { fontSize: 16, fontWeight: '700', color: t.textSecondary, textAlign: 'center' },
+    emptySubtext: { fontSize: 13, color: t.textMuted, textAlign: 'center', lineHeight: 20 },
 
-  retryBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginTop: 8, backgroundColor: BSU.green,
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
-  },
-  retryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    retryBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      marginTop: 8, backgroundColor: TEAL.primary,
+      paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
+    },
+    retryBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
-  card: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', marginHorizontal: 16, marginVertical: 5,
-    borderRadius: 14, padding: 14, gap: 12,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 }, elevation: 2,
-  },
-  cardIconWrap: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: BSU.greenLight, alignItems: 'center', justifyContent: 'center',
-  },
-  cardBody: { flex: 1 },
-  cardName: { fontSize: 13, fontWeight: '700', color: '#111827', lineHeight: 18 },
-  cardType: { fontSize: 11, color: BSU.goldDark, fontWeight: '600', marginTop: 3 },
-  cardMeta: { fontSize: 11, color: '#9ca3af', marginTop: 2 },
-});
+    card: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: t.cardBg, marginHorizontal: 16, marginVertical: 5,
+      borderRadius: 14, padding: 14, gap: 12,
+      borderWidth: 0.5, borderColor: t.cardBorder,
+    },
+    cardIconWrap: {
+      width: 44, height: 44, borderRadius: 12,
+      backgroundColor: t.primaryLight, alignItems: 'center', justifyContent: 'center',
+    },
+    cardBody: { flex: 1 },
+    cardName: { fontSize: 13, fontWeight: '700', color: t.textPrimary, lineHeight: 18 },
+    cardType: { fontSize: 11, color: t.primaryDark, fontWeight: '600', marginTop: 3 },
+    cardMeta: { fontSize: 11, color: t.textMuted, marginTop: 2 },
+  });
+}
 
-const modal = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    maxHeight: '90%', paddingBottom: Platform.OS === 'ios' ? 34 : 56,
-  },
-  handle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: '#e5e7eb',
-    alignSelf: 'center', marginTop: 10, marginBottom: 4,
-  },
-  header: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    padding: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#f3f4f6', gap: 12,
-  },
-  headerIconWrap: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: BSU.greenLight,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  headerText: { flex: 1 },
-  title: { fontSize: 15, fontWeight: '700', color: '#111827', lineHeight: 20 },
-  subtitle: { fontSize: 12, color: BSU.goldDark, marginTop: 3, fontWeight: '600' },
-  closeBtn: { padding: 2 },
+function makeModalStyles(t: AppTheme) {
+  return StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+    sheet: {
+      backgroundColor: t.cardBg, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+      maxHeight: '90%', paddingBottom: Platform.OS === 'ios' ? 34 : 56,
+    },
+    handle: {
+      width: 40, height: 4, borderRadius: 2, backgroundColor: t.cardBorder,
+      alignSelf: 'center', marginTop: 10, marginBottom: 4,
+    },
+    header: {
+      flexDirection: 'row', alignItems: 'flex-start',
+      padding: 16, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: t.divider, gap: 12,
+    },
+    headerIconWrap: {
+      width: 44, height: 44, borderRadius: 12, backgroundColor: t.primaryLight,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    headerText: { flex: 1 },
+    title: { fontSize: 15, fontWeight: '700', color: t.textPrimary, lineHeight: 20 },
+    subtitle: { fontSize: 12, color: t.primaryDark, marginTop: 3, fontWeight: '600' },
+    closeBtn: { padding: 2 },
 
-  body: { paddingHorizontal: 16, paddingTop: 16 },
-  sectionLabel: {
-    fontSize: 10, fontWeight: '700', color: '#9ca3af',
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10,
-  },
-  detailCard: {
-    borderWidth: 1, borderColor: '#f0f0f0', borderRadius: 14,
-    overflow: 'hidden', marginBottom: 4, backgroundColor: '#fafafa',
-  },
-  detailRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 12,
-  },
-  detailRowBorder: { borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  detailLabel: { fontSize: 13, color: '#9ca3af', flex: 1 },
-  detailValue: { fontSize: 13, fontWeight: '600', color: '#111827', flex: 1.5, textAlign: 'right' },
+    body: { paddingHorizontal: 16, paddingTop: 16 },
+    sectionLabel: {
+      fontSize: 10, fontWeight: '700', color: t.textMuted,
+      textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10,
+    },
+    detailCard: {
+      borderWidth: 0.5, borderColor: t.cardBorder, borderRadius: 14,
+      overflow: 'hidden', marginBottom: 4, backgroundColor: t.inputBg,
+    },
+    detailRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingHorizontal: 14, paddingVertical: 12,
+    },
+    detailRowBorder: { borderBottomWidth: 0.5, borderBottomColor: t.divider },
+    detailLabel: { fontSize: 13, color: t.textMuted, flex: 1 },
+    detailValue: { fontSize: 13, fontWeight: '600', color: t.textPrimary, flex: 1.5, textAlign: 'right' },
 
-  progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 12 },
-  progressBar: { flex: 1, height: 6, backgroundColor: '#e5e7eb', borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: '100%', backgroundColor: BSU.goldDark, borderRadius: 3 },
-  progressText: { fontSize: 12, color: BSU.goldDark, fontWeight: '700', width: 36 },
+    progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 12 },
+    progressBar: { flex: 1, height: 6, backgroundColor: t.cardBorder, borderRadius: 3, overflow: 'hidden' },
+    progressFill: { height: '100%', backgroundColor: TEAL.primary, borderRadius: 3 },
+    progressText: { fontSize: 12, color: TEAL.primary, fontWeight: '700', width: 36 },
 
-  secondaryBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: BSU.greenLight, borderRadius: 14,
-    paddingVertical: 14, marginTop: 16, marginBottom: 10,
-    borderWidth: 1, borderColor: BSU.greenBorder,
-  },
-  secondaryBtnText: { color: BSU.green, fontSize: 15, fontWeight: '700' },
+    secondaryBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      backgroundColor: t.primaryLight, borderRadius: 14,
+      paddingVertical: 14, marginTop: 16, marginBottom: 10,
+      borderWidth: 0.5, borderColor: t.primaryBorder,
+    },
+    secondaryBtnText: { color: TEAL.primary, fontSize: 15, fontWeight: '700' },
 
-  primaryBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: BSU.green, borderRadius: 14,
-    paddingVertical: 15, marginBottom: 10,
-  },
-  primaryBtnDisabled: { opacity: 0.65 },
-  primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    primaryBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      backgroundColor: TEAL.primary, borderRadius: 14,
+      paddingVertical: 15, marginBottom: 10,
+    },
+    primaryBtnDisabled: { opacity: 0.65 },
+    primaryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
-  ghostBtn: {
-    borderRadius: 14, paddingVertical: 14, alignItems: 'center',
-    borderWidth: 1, borderColor: '#e5e7eb',
-  },
-  ghostBtnText: { color: '#6b7280', fontSize: 15, fontWeight: '600' },
-});
+    ghostBtn: {
+      borderRadius: 14, paddingVertical: 14, alignItems: 'center',
+      borderWidth: 0.5, borderColor: t.cardBorder,
+    },
+    ghostBtnText: { color: t.textLight, fontSize: 15, fontWeight: '600' },
+  });
+}

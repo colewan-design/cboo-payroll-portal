@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -9,33 +9,38 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 
-type Props = { onFinish: () => void };
+type Props = { isReady: boolean; onFinish: () => void };
 
-export default function AnimatedSplash({ onFinish }: Props) {
+export default function AnimatedSplash({ isReady, onFinish }: Props) {
   const overlayOpacity = useSharedValue(1);
+  const [minTimeDone, setMinTimeDone] = useState(false);
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
   }));
 
+  // Enforce a minimum 2-second display regardless of how fast auth resolves
   useEffect(() => {
-    // GIF duration is ~1910ms — start fading just before it loops
+    const t = setTimeout(() => setMinTimeDone(true), 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!isReady || !minTimeDone) return;
     overlayOpacity.value = withDelay(
-      1800,
-      withTiming(0, { duration: 400 }, (finished) => {
+      200,
+      withTiming(0, { duration: 500 }, (finished) => {
         if (finished) runOnJS(onFinish)();
       }),
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isReady, minTimeDone]);
 
   return (
     <Animated.View style={[styles.overlay, overlayStyle]} pointerEvents="none">
       <Image
-        source={require('@/assets/images/splash-animation.gif')}
-        style={styles.gif}
-        contentFit="contain"
-        autoplay
+        source={require('@/assets/images/bsu-payroll-splash-screen.png')}
+        style={styles.image}
+        contentFit="cover"
       />
     </Animated.View>
   );
@@ -44,13 +49,9 @@ export default function AnimatedSplash({ onFinish }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#1B5E20',
-    alignItems: 'center',
-    justifyContent: 'center',
     zIndex: 999,
   },
-  gif: {
-    width: 280,
-    height: 280,
+  image: {
+    ...StyleSheet.absoluteFillObject,
   },
 });

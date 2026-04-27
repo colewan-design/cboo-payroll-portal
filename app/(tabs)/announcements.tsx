@@ -12,9 +12,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AnnouncementCard, { Announcement } from '@/components/AnnouncementCard';
 import { getAnnouncements } from '@/services/api';
-import { BSU } from '@/constants/theme';
+import { TEAL, useAppTheme, AppTheme } from '@/constants/theme';
 
 export default function AnnouncementsScreen() {
+  const theme = useAppTheme();
+  const styles = makeStyles(theme);
+
   const [items, setItems] = useState<Announcement[]>([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -60,7 +63,7 @@ export default function AnnouncementsScreen() {
           <Text style={styles.headerTitle}>Announcements</Text>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={BSU.green} />
+          <ActivityIndicator size="large" color={TEAL.primary} />
         </View>
       </View>
     );
@@ -73,7 +76,7 @@ export default function AnnouncementsScreen() {
           <Text style={styles.headerTitle}>Announcements</Text>
         </View>
         <View style={styles.center}>
-          <Ionicons name="cloud-offline-outline" size={48} color="#d1d5db" />
+          <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
           <Text style={styles.errorText}>Could not load announcements.</Text>
           <TouchableOpacity
             style={styles.retryBtn}
@@ -102,20 +105,20 @@ export default function AnnouncementsScreen() {
         renderItem={({ item }) => <AnnouncementCard item={item} />}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BSU.green} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TEAL.primary} />
         }
         onEndReached={onEndReached}
         onEndReachedThreshold={0.3}
         ListEmptyComponent={
           <View style={styles.center}>
-            <Ionicons name="megaphone-outline" size={48} color="#d1d5db" />
+            <Ionicons name="megaphone-outline" size={48} color={theme.textMuted} />
             <Text style={styles.emptyText}>No announcements yet.</Text>
             <Text style={styles.emptySubtext}>Check back later for updates.</Text>
           </View>
         }
         ListFooterComponent={
           loadingMore
-            ? <ActivityIndicator color={BSU.green} style={{ paddingVertical: 20 }} />
+            ? <ActivityIndicator color={TEAL.primary} style={{ paddingVertical: 20 }} />
             : null
         }
       />
@@ -123,25 +126,27 @@ export default function AnnouncementsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f1f5f9' },
-  header: {
-    backgroundColor: BSU.green,
-    paddingTop: Platform.OS === 'ios' ? 56 : 48,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
-  headerSub: { fontSize: 12, color: BSU.textOnGreen, marginTop: 4 },
-  list: { padding: 16, paddingBottom: 32 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
-  errorText: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
-  retryBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: BSU.green, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
-    marginTop: 4,
-  },
-  retryText: { fontSize: 14, color: '#fff', fontWeight: '600' },
-  emptyText: { fontSize: 16, fontWeight: '700', color: '#374151' },
-  emptySubtext: { fontSize: 13, color: '#9ca3af' },
-});
+function makeStyles(t: AppTheme) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: t.bg },
+    header: {
+      backgroundColor: TEAL.primary,
+      paddingTop: Platform.OS === 'ios' ? 56 : 48,
+      paddingBottom: 20,
+      paddingHorizontal: 20,
+    },
+    headerTitle: { fontSize: 22, fontWeight: '700', color: '#fff', letterSpacing: -0.3 },
+    headerSub: { fontSize: 12, color: TEAL.textSub, marginTop: 4 },
+    list: { padding: 16, paddingBottom: 32 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 8 },
+    errorText: { fontSize: 14, color: t.textLight, textAlign: 'center' },
+    retryBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: TEAL.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10,
+      marginTop: 4,
+    },
+    retryText: { fontSize: 14, color: '#fff', fontWeight: '600' },
+    emptyText: { fontSize: 16, fontWeight: '700', color: t.textSecondary },
+    emptySubtext: { fontSize: 13, color: t.textMuted },
+  });
+}

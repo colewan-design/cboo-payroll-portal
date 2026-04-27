@@ -4,11 +4,11 @@
     "slug": "bsu-cboo-payroll-portal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/bsu-logo.png",
+    "icon": "./assets/images/BSU logo 660.png",
     "scheme": "bsucboopayrollportal",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/bsu-logo.png",
+      "image": "./assets/images/bsu-payroll-splash-screen.png",
       "resizeMode": "contain",
       "backgroundColor": "#1B5E20"
     },
@@ -18,8 +18,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1B5E20",
-        "foregroundImage": "./assets/images/bsu-logo.png",
+        "backgroundColor": "#009688",
+        "foregroundImage": "./assets/images/BSU logo 660.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
@@ -37,9 +37,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/bsu-logo.png",
-          "imageWidth": 220,
-          "resizeMode": "contain",
+          "image": "./assets/images/bsu-payroll-splash-screen.png",
+          "resizeMode": "cover",
           "backgroundColor": "#1B5E20",
           "dark": {
             "backgroundColor": "#1B5E20"

@@ -4,16 +4,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import messaging from '@react-native-firebase/messaging';
-import * as SplashScreen from 'expo-splash-screen';
 import { Platform } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { registerForPushNotifications } from '@/services/notifications';
 import AnimatedSplash from '@/components/AnimatedSplash';
-
-// Keep native splash visible until we are ready to replace it
-SplashScreen.preventAutoHideAsync();
 
 // Background handler must run at module level on native only
 if (Platform.OS !== 'web') {
@@ -26,13 +22,6 @@ function RootLayoutNav() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
-
-  // Once auth resolves, hide the native splash and hand off to the animated one
-  useEffect(() => {
-    if (!isLoading) {
-      SplashScreen.hideAsync();
-    }
-  }, [isLoading]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -93,9 +82,11 @@ function RootLayoutNav() {
       </Stack>
       <StatusBar style="light" />
 
-      {/* Animated splash sits on top of everything until its animation finishes */}
-      {showAnimatedSplash && !isLoading && (
-        <AnimatedSplash onFinish={() => setShowAnimatedSplash(false)} />
+      {showAnimatedSplash && (
+        <AnimatedSplash
+          isReady={!isLoading}
+          onFinish={() => setShowAnimatedSplash(false)}
+        />
       )}
     </ThemeProvider>
   );

@@ -1,20 +1,25 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useColorScheme } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, BSU } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { TEAL } from '@/constants/theme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const isDark = useColorScheme() === 'dark';
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: BSU.gold,
-      tabBarInactiveTintColor: '#9BA1A6',
-      tabBarStyle: { borderTopColor: BSU.greenBorder },
+        tabBarActiveTintColor: TEAL.primary,
+        tabBarInactiveTintColor: isDark ? '#6b7280' : '#9BA1A6',
+        tabBarStyle: {
+          backgroundColor: isDark ? '#1f2937' : '#fff',
+          borderTopWidth: 0.5,
+          borderTopColor: isDark ? '#374151' : TEAL.cardBorder,
+          elevation: 0,
+        },
         headerShown: false,
         tabBarButton: HapticTab,
       }}
@@ -47,7 +52,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
         }}
       />
-      {/* Hide the old explore screen from the tab bar */}
       <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
