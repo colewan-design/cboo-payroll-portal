@@ -8,8 +8,10 @@ import { Platform } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { NetworkProvider } from '@/context/NetworkContext';
 import { registerForPushNotifications } from '@/services/notifications';
 import AnimatedSplash from '@/components/AnimatedSplash';
+import OfflineBanner from '@/components/OfflineBanner';
 
 // Background handler must run at module level on native only
 if (Platform.OS !== 'web') {
@@ -17,7 +19,7 @@ if (Platform.OS !== 'web') {
 }
 
 function RootLayoutNav() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, hasSeenOnboarding } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
@@ -26,13 +28,17 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
     const inAuth = (segments[0] as string) === '(auth)';
+    const inOnboarding = (segments[0] as string) === 'onboarding';
     if (!user && !inAuth) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       router.replace('/(auth)/login' as any);
-    } else if (user && inAuth) {
+    } else if (user && !hasSeenOnboarding && !inOnboarding) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.replace('/onboarding' as any);
+    } else if (user && hasSeenOnboarding && (inAuth || inOnboarding)) {
       router.replace('/(tabs)');
     }
-  }, [user, isLoading, segments]);
+  }, [user, isLoading, hasSeenOnboarding, segments]);
 
   useEffect(() => {
     if (!user || Platform.OS === 'web') return;
@@ -77,10 +83,13 @@ function RootLayoutNav() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" />
         <Stack.Screen name="announcement" />
         <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: 'Info' }} />
       </Stack>
       <StatusBar style="light" />
+
+      <OfflineBanner />
 
       {showAnimatedSplash && (
         <AnimatedSplash
@@ -94,8 +103,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <NetworkProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </NetworkProvider>
   );
 }

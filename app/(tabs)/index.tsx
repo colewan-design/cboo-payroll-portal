@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -72,7 +73,6 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, [fetchData]);
 
-  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Employee';
   const initials = [user?.first_name?.[0], user?.last_name?.[0]].filter(Boolean).join('').toUpperCase();
   const monthlyRate = profile?.monthly_rate
     ? `₱${Number(profile.monthly_rate).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`
@@ -88,14 +88,19 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View style={styles.headerInner}>
           <View style={styles.headerLeft}>
-            <Text style={styles.greeting}>Good day,</Text>
-            <Text style={styles.name} numberOfLines={1}>{fullName}</Text>
-            {user?.employee_id ? (
-              <View style={styles.empIdBadge}>
-                <Ionicons name="card-outline" size={11} color={TEAL.textSub} />
-                <Text style={styles.empId}> ID: {user.employee_id}</Text>
-              </View>
-            ) : null}
+            <Image
+              source={require('@/assets/images/bsu-logo.png')}
+              style={styles.bsuLogo}
+              resizeMode="contain"
+            />
+            <View style={styles.headerTextBlock}>
+              <Image
+                source={require('@/assets/images/App Heading.png')}
+                style={styles.appHeading}
+                resizeMode="contain"
+              />
+              <Text style={styles.welcomeText}>Welcome, {user?.first_name ?? 'Employee'}!</Text>
+            </View>
           </View>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initials || '?'}</Text>
@@ -168,21 +173,23 @@ export default function DashboardScreen() {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           {[
-            { icon: 'document-text-outline' as const, label: 'Payslips', route: '/(tabs)/payslips' },
-            { icon: 'megaphone-outline' as const, label: 'Announcements', route: '/(tabs)/announcements' },
-            { icon: 'person-circle-outline' as const, label: 'Profile', route: '/(tabs)/profile' },
+            { icon: 'document-text-outline' as const, label: 'Payslips', sub: 'View payslips', route: '/(tabs)/payslips', bg: '#1B3A2D' },
+            { icon: 'megaphone-outline' as const, label: 'Announcements', sub: 'HR updates', route: '/(tabs)/announcements', bg: '#0D3642' },
+            { icon: 'person-circle-outline' as const, label: 'Profile', sub: 'Your info', route: '/(tabs)/profile', bg: '#1A2744' },
           ].map((item) => (
             <TouchableOpacity
               key={item.label}
-              style={styles.quickAction}
+              style={[styles.quickAction, { backgroundColor: item.bg }]}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onPress={() => router.push(item.route as any)}
-              activeOpacity={0.75}
+              activeOpacity={0.8}
             >
               <View style={styles.quickActionIcon}>
-                <Ionicons name={item.icon} size={24} color={TEAL.primary} />
+                <Ionicons name={item.icon} size={26} color="#fff" />
               </View>
+              <View style={{ flex: 1 }} />
               <Text style={styles.quickActionLabel}>{item.label}</Text>
+              <Text style={styles.quickActionSub}>{item.sub}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -282,23 +289,26 @@ function makeStyles(t: AppTheme) {
     root: { flex: 1, backgroundColor: t.bg },
 
     header: {
-      backgroundColor: TEAL.primary,
-      paddingTop: Platform.OS === 'ios' ? 56 : 48,
-      paddingBottom: 28, paddingHorizontal: 20,
+      backgroundColor: TEAL.light,
+      paddingTop: Platform.OS === 'ios' ? 56 : 40,
+      paddingBottom: 14,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: TEAL.border,
     },
-    headerInner: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-    headerLeft: { flex: 1, marginRight: 12 },
-    greeting: { fontSize: 13, color: TEAL.textSub, fontWeight: '500' },
-    name: { fontSize: 24, fontWeight: '700', color: '#fff', marginTop: 2, letterSpacing: -0.3 },
-    empIdBadge: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-    empId: { fontSize: 12, color: TEAL.textSub },
+    headerInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+    bsuLogo: { width: 48, height: 48 },
+    headerTextBlock: { justifyContent: 'center', gap: 2 },
+    appHeading: { height: 32, width: 120 },
+    welcomeText: { fontSize: 12, color: TEAL.darker, fontWeight: '500' },
     avatar: {
-      width: 52, height: 52, borderRadius: 26,
-      backgroundColor: 'rgba(255,255,255,0.2)',
+      width: 42, height: 42, borderRadius: 21,
+      backgroundColor: TEAL.primary,
       alignItems: 'center', justifyContent: 'center',
-      borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)',
+      borderWidth: 2, borderColor: TEAL.borderMid,
     },
-    avatarText: { fontSize: 20, fontWeight: '700', color: '#fff' },
+    avatarText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 
     body: { paddingHorizontal: 16, marginTop: -1 },
 
@@ -336,15 +346,20 @@ function makeStyles(t: AppTheme) {
 
     quickActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
     quickAction: {
-      flex: 1, backgroundColor: t.cardBg, borderRadius: 14, paddingVertical: 16,
-      alignItems: 'center', gap: 8,
-      borderWidth: 0.5, borderColor: t.cardBorder,
+      flex: 1,
+      borderRadius: 16,
+      padding: 14,
+      paddingBottom: 18,
+      justifyContent: 'flex-end',
+      minHeight: 130,
     },
     quickActionIcon: {
-      width: 44, height: 44, borderRadius: 12,
-      backgroundColor: t.primaryLight, alignItems: 'center', justifyContent: 'center',
+      width: 46, height: 46, borderRadius: 12,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      alignItems: 'center', justifyContent: 'center',
     },
-    quickActionLabel: { fontSize: 11, fontWeight: '700', color: t.textSecondary, textAlign: 'center' },
+    quickActionLabel: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 12, lineHeight: 18 },
+    quickActionSub: { fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
 
     section: {
       backgroundColor: t.cardBg, borderRadius: 16, marginTop: 16, padding: 16,
