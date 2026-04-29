@@ -8,28 +8,48 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, type User } from '@/context/AuthContext';
 import { getBotReply } from '@/services/chatbot';
-import { TEAL, BSU, useAppTheme, AppTheme } from '@/constants/theme';
+import { TEAL, useAppTheme, AppTheme } from '@/constants/theme';
+import {
+  isModelDownloaded,
+  downloadModel,
+  loadModel,
+  isModelLoaded,
+  cleanLegacyModels,
+  chat as llmChat,
+  type LLMMessage,
+} from '@/services/llm';
+import { buildEmployeeContext } from '@/services/chatContext';
 
 type Message = {
   id: string;
   text: string;
   sender: 'user' | 'bot';
   suggestions?: string[];
+  streaming?: boolean;
 };
+
+type ModelStatus =
+  | 'checking'
+  | 'need_download'
+  | 'downloading'
+  | 'loading'
+  | 'ready'
+  | 'error';
 
 const WELCOME: Message = {
   id: 'welcome',
   sender: 'bot',
-  text: "Hi there! 👋 I'm your BSU CBOO Payroll Assistant. Ask me anything about your payslips, salary, announcements, or account.",
+  text: "Hi there! I'm your BSU CBOO Payroll Assistant. Ask me anything about your payslips, salary, deductions, or account.",
   suggestions: [
+    'What are my deductions?',
     'How do I view my payslips?',
     'How do I download a payslip?',
-    'How do I change my password?',
     'What can you help with?',
   ],
 };
@@ -37,6 +57,31 @@ const WELCOME: Message = {
 let msgCounter = 0;
 function uid() {
   return `msg_${Date.now()}_${++msgCounter}`;
+}
+
+function buildSystemPrompt(user: User | null, employeeContext?: string): string {
+  const name = user
+    ? [user.first_name, user.middle_name, user.last_name, user.suffix]
+        .filter(Boolean)
+        .join(' ')
+    : 'Unknown';
+  const payslipSection = employeeContext
+    ? `\n\n${employeeContext}`
+    : '';
+
+  const dataNote = employeeContext
+    ? 'The employee\'s actual payroll records are provided below. Use them to give specific, accurate answers with real figures. Never say you lack access to data.'
+    : 'No payroll records loaded yet. Tell the employee their data is still loading and to try again shortly.';
+
+  return `You are a payroll assistant for Benguet State University (BSU) CBOO. Answer questions about payslips, salary, deductions, and app navigation using the data provided. Be concise and friendly.
+
+${dataNote}
+
+Employee: ${name} | ID: ${user?.employee_id ?? '—'} | Email: ${user?.email ?? '—'}
+
+Deductions: GSIS (~9% of basic salary), PhilHealth (salary bracket), Pag-IBIG (₱100 or 2%), Withholding Tax (BIR table).
+Pay: Basic (Salary Grade & Step) + PERA ₱2,000 + allowances = Gross. Gross − deductions = Net Pay.
+App: Payslips tab → view/download payslips. News tab → memos/updates. Profile tab → change password/sign out.${payslipSection}`;
 }
 
 export default function ChatScreen() {
@@ -47,30 +92,156 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [modelStatus, setModelStatus] = useState<ModelStatus>('checking');
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [contextReady, setContextReady] = useState(false);
+
+  // Tracks conversation history fed to the LLM (separate from UI messages)
+  const llmHistoryRef = useRef<LLMMessage[]>([]);
+  const employeeContextRef = useRef<string>('');
   const listRef = useRef<FlatList>(null);
 
   const firstName = user?.first_name ?? 'Employee';
 
-  const sendMessage = useCallback((text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  useEffect(() => {
+    // Fetch all employee data in parallel with model init
+    async function fetchEmployeeContext() {
+      try {
+        if (!user) return;
+        employeeContextRef.current = await buildEmployeeContext(user);
+      } catch {
+        // context stays empty — model will tell user to retry
+      } finally {
+        setContextReady(true);
+      }
+    }
 
-    const userMsg: Message = { id: uid(), sender: 'user', text: trimmed };
-    setMessages((prev) => [userMsg, ...prev]);
-    setInput('');
-    setIsTyping(true);
+    async function initModel() {
+      try {
+        if (isModelLoaded()) {
+          setModelStatus('ready');
+          return;
+        }
+        const downloaded = await isModelDownloaded();
+        if (downloaded) {
+          setModelStatus('loading');
+          await loadModel();
+          cleanLegacyModels();
+          setModelStatus('ready');
+        } else {
+          setModelStatus('need_download');
+        }
+      } catch {
+        setModelStatus('need_download');
+      }
+    }
 
-    // Simulate brief typing delay
-    setTimeout(() => {
-      const { response, suggestions } = getBotReply(trimmed);
-      const botMsg: Message = { id: uid(), sender: 'bot', text: response, suggestions };
-      setMessages((prev) => [botMsg, ...prev]);
-      setIsTyping(false);
-    }, 700);
-  }, []);
+    fetchEmployeeContext();
+    initModel();
+  }, [user?.employee_id]);
+
+  async function handleDownload() {
+    try {
+      setModelStatus('downloading');
+      setDownloadProgress(0);
+      await downloadModel(setDownloadProgress);
+      setModelStatus('loading');
+      await loadModel();
+      setModelStatus('ready');
+    } catch {
+      setModelStatus('error');
+    }
+  }
+
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      const userMsg: Message = { id: uid(), sender: 'user', text: trimmed };
+      setMessages((prev) => [userMsg, ...prev]);
+      setInput('');
+
+      // Fall back to rule-based bot when LLM not ready
+      if (modelStatus !== 'ready') {
+        setIsTyping(true);
+        setTimeout(() => {
+          const { response, suggestions } = getBotReply(trimmed);
+          setMessages((prev) => [
+            { id: uid(), sender: 'bot', text: response, suggestions },
+            ...prev,
+          ]);
+          setIsTyping(false);
+        }, 600);
+        return;
+      }
+
+      // Add user turn to LLM history
+      llmHistoryRef.current = [
+        ...llmHistoryRef.current,
+        { role: 'user', content: trimmed },
+      ];
+      // Keep last 10 turns to stay within context window
+      if (llmHistoryRef.current.length > 10)
+        llmHistoryRef.current = llmHistoryRef.current.slice(-10);
+
+      const llmMsgs: LLMMessage[] = [
+        { role: 'system', content: buildSystemPrompt(user, employeeContextRef.current || undefined) },
+        ...llmHistoryRef.current,
+      ];
+
+      // Add an empty streaming message that fills in as tokens arrive
+      const botMsgId = uid();
+      setMessages((prev) => [
+        { id: botMsgId, sender: 'bot', text: '', streaming: true },
+        ...prev,
+      ]);
+
+      let accumulated = '';
+      try {
+        await llmChat(llmMsgs, (token) => {
+          accumulated += token;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === botMsgId ? { ...m, text: accumulated } : m,
+            ),
+          );
+        });
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId ? { ...m, streaming: false } : m,
+          ),
+        );
+
+        if (accumulated)
+          llmHistoryRef.current = [
+            ...llmHistoryRef.current,
+            { role: 'assistant', content: accumulated },
+          ];
+      } catch {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMsgId
+              ? {
+                  ...m,
+                  text:
+                    accumulated ||
+                    "Sorry, I couldn't generate a response. Please try again.",
+                  streaming: false,
+                }
+              : m,
+          ),
+        );
+      }
+    },
+    [modelStatus, user],
+  );
 
   function renderItem({ item }: { item: Message }) {
     const isBot = item.sender === 'bot';
+    const showTypingDots = isBot && item.streaming && !item.text;
+
     return (
       <View style={styles.messageGroup}>
         {isBot && (
@@ -82,8 +253,15 @@ export default function ChatScreen() {
                 resizeMode="contain"
               />
             </View>
-            <View style={[styles.bubble, styles.botBubble]}>
-              <Text style={styles.botText}>{item.text}</Text>
+            <View style={[styles.bubble, styles.botBubble, showTypingDots && styles.typingBubble]}>
+              {showTypingDots ? (
+                <Text style={styles.typingDots}>• • •</Text>
+              ) : (
+                <Text style={styles.botText}>
+                  {item.text}
+                  {item.streaming ? '▋' : ''}
+                </Text>
+              )}
             </View>
           </View>
         )}
@@ -96,7 +274,7 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {isBot && item.suggestions && item.suggestions.length > 0 && (
+        {isBot && !item.streaming && item.suggestions && item.suggestions.length > 0 && (
           <View style={styles.suggestions}>
             {item.suggestions.map((s) => (
               <TouchableOpacity
@@ -117,8 +295,8 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 24}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -137,10 +315,29 @@ export default function ChatScreen() {
             <Text style={styles.headerSub}>Payroll Assistant · {firstName}</Text>
           </View>
         </View>
-        <View style={styles.onlineDot} />
+        <View style={[styles.statusDot, modelStatus === 'ready' && styles.statusDotReady]} />
       </View>
 
-      {/* Messages — inverted so newest is at the bottom */}
+      {/* AI model status banner */}
+      <ModelBanner
+        status={modelStatus}
+        progress={downloadProgress}
+        onDownload={handleDownload}
+        onRetry={handleDownload}
+        theme={theme}
+      />
+
+      {/* Data loading banner — shown only when model is ready but context is still fetching */}
+      {modelStatus === 'ready' && !contextReady && (
+        <View style={[bannerStyles.bar, { backgroundColor: theme.surface, borderBottomColor: theme.cardBorder }]}>
+          <ActivityIndicator size="small" color={TEAL.primary} />
+          <Text style={[bannerStyles.text, { color: theme.textMuted }]}>
+            Loading your payroll data…
+          </Text>
+        </View>
+      )}
+
+      {/* Messages — inverted so newest is at bottom */}
       <FlatList
         ref={listRef}
         data={messages}
@@ -180,7 +377,7 @@ export default function ChatScreen() {
           onSubmitEditing={() => sendMessage(input)}
           multiline
           maxLength={300}
-          editable={!isTyping}
+          editable={!isTyping && modelStatus !== 'downloading' && modelStatus !== 'loading'}
         />
         <TouchableOpacity
           style={[styles.sendBtn, (!input.trim() || isTyping) && styles.sendBtnDisabled]}
@@ -195,12 +392,111 @@ export default function ChatScreen() {
   );
 }
 
+// ─── AI Model Banner ──────────────────────────────────────────────────────────
+
+function ModelBanner({
+  status,
+  progress,
+  onDownload,
+  onRetry,
+  theme,
+}: {
+  status: ModelStatus;
+  progress: number;
+  onDownload: () => void;
+  onRetry: () => void;
+  theme: AppTheme;
+}) {
+  if (status === 'ready' || status === 'checking') return null;
+
+  if (status === 'need_download') {
+    return (
+      <TouchableOpacity
+        style={[bannerStyles.bar, { backgroundColor: theme.primaryLight, borderBottomColor: theme.primaryBorder }]}
+        onPress={onDownload}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="sparkles-outline" size={15} color={TEAL.primary} />
+        <Text style={[bannerStyles.text, { color: TEAL.primary }]}>
+          Enable AI Assistant
+        </Text>
+        <Text style={[bannerStyles.sub, { color: TEAL.dark }]}>~1.1 GB download</Text>
+        <Ionicons name="chevron-forward" size={14} color={TEAL.dark} style={{ marginLeft: 'auto' }} />
+      </TouchableOpacity>
+    );
+  }
+
+  if (status === 'downloading') {
+    const pct = Math.round(progress * 100);
+    return (
+      <View style={[bannerStyles.bar, { backgroundColor: theme.primaryLight, borderBottomColor: theme.primaryBorder }]}>
+        <ActivityIndicator size="small" color={TEAL.primary} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={[bannerStyles.text, { color: TEAL.primary }]}>
+            Downloading AI model… {pct}%
+          </Text>
+          <View style={[bannerStyles.track, { backgroundColor: theme.cardBorder }]}>
+            <View style={[bannerStyles.fill, { width: `${pct}%` as any }]} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (status === 'loading') {
+    return (
+      <View style={[bannerStyles.bar, { backgroundColor: theme.primaryLight, borderBottomColor: theme.primaryBorder }]}>
+        <ActivityIndicator size="small" color={TEAL.primary} />
+        <Text style={[bannerStyles.text, { color: TEAL.primary }]}>
+          Loading AI model…
+        </Text>
+      </View>
+    );
+  }
+
+  // error
+  return (
+    <TouchableOpacity
+      style={[bannerStyles.bar, { backgroundColor: '#fef2f2', borderBottomColor: '#fecaca' }]}
+      onPress={onRetry}
+      activeOpacity={0.8}
+    >
+      <Ionicons name="warning-outline" size={15} color="#dc2626" />
+      <Text style={[bannerStyles.text, { color: '#dc2626' }]}>AI unavailable · tap to retry</Text>
+    </TouchableOpacity>
+  );
+}
+
+const bannerStyles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderBottomWidth: 0.5,
+  },
+  text: { fontSize: 13, fontWeight: '600' },
+  sub: { fontSize: 11, fontWeight: '400' },
+  track: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    backgroundColor: TEAL.primary,
+    borderRadius: 2,
+  },
+});
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 function makeStyles(t: AppTheme) {
   const STATUS_TOP = Platform.OS === 'ios' ? 56 : 40;
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: t.bg },
 
-    /* ── Header ── */
     header: {
       paddingTop: STATUS_TOP,
       paddingBottom: 14,
@@ -216,15 +512,15 @@ function makeStyles(t: AppTheme) {
     bsuLogo: { width: 44, height: 44 },
     appHeading: { height: 30, width: 110 },
     headerSub: { fontSize: 11, color: TEAL.darker, fontWeight: '500', marginTop: 1 },
-    onlineDot: {
+
+    statusDot: {
       width: 10, height: 10, borderRadius: 5,
-      backgroundColor: '#22c55e',
+      backgroundColor: '#d1d5db',
       borderWidth: 2, borderColor: TEAL.light,
     },
+    statusDotReady: { backgroundColor: '#22c55e' },
 
-    /* ── List ── */
     listContent: { paddingHorizontal: 14, paddingVertical: 16, gap: 4 },
-
     messageGroup: { marginBottom: 4 },
 
     botRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 2 },
@@ -261,7 +557,6 @@ function makeStyles(t: AppTheme) {
     typingBubble: { paddingVertical: 12, paddingHorizontal: 16 },
     typingDots: { fontSize: 16, color: t.textMuted, letterSpacing: 4 },
 
-    /* ── Quick-reply chips ── */
     suggestions: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -279,7 +574,6 @@ function makeStyles(t: AppTheme) {
     },
     chipText: { fontSize: 12, color: TEAL.primary, fontWeight: '600' },
 
-    /* ── Input bar ── */
     inputBar: {
       flexDirection: 'row',
       alignItems: 'flex-end',

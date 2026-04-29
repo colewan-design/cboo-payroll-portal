@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { getAnnouncement } from '@/services/api';
-import { Announcement } from '@/components/AnnouncementCard';
+import { getNewsItem } from '@/services/api';
+import { NewsItem } from '@/components/NewsItemCard';
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -24,16 +24,16 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-export default function AnnouncementDetailScreen() {
+export default function NewsItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const [post, setPost] = useState<Announcement | null>(null);
+  const [post, setPost] = useState<NewsItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    getAnnouncement(Number(id))
+    getNewsItem(Number(id))
       .then(res => setPost(res.data.data ?? res.data))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -46,7 +46,7 @@ export default function AnnouncementDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Announcement</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>News</Text>
       </View>
 
       {loading ? (
@@ -55,7 +55,7 @@ export default function AnnouncementDetailScreen() {
         </View>
       ) : error || !post ? (
         <View style={styles.center}>
-          <Text style={styles.errorText}>Could not load this announcement.</Text>
+          <Text style={styles.errorText}>Could not load this news post.</Text>
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.retryText}>Go back</Text>
           </TouchableOpacity>

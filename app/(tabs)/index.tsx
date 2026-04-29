@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import api, { getAnnouncements } from '@/services/api';
-import { Announcement } from '@/components/AnnouncementCard';
+import { NewsItem } from '@/components/AnnouncementCard';
 import { TEAL, BSU, useAppTheme, AppTheme } from '@/constants/theme';
 
 type Payslip = {
@@ -42,7 +42,7 @@ export default function DashboardScreen() {
 
   const [recentPayslips, setRecentPayslips] = useState<Payslip[]>([]);
   const [profile, setProfile] = useState<EmployeeProfile | null>(null);
-  const [latestAnnouncement, setLatestAnnouncement] = useState<Announcement | null>(null);
+  const [latestNews, setLatestNewsItem] = useState<NewsItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -59,7 +59,7 @@ export default function DashboardScreen() {
       }
       if (profileRes.status === 'fulfilled') setProfile(profileRes.value.data);
       if (announcementRes.status === 'fulfilled') {
-        setLatestAnnouncement(announcementRes.value.data?.data?.[0] ?? null);
+        setLatestNewsItem(announcementRes.value.data?.data?.[0] ?? null);
       }
     } catch { /* individual settled results handled above */ }
     finally { setLoading(false); }
@@ -174,7 +174,7 @@ export default function DashboardScreen() {
         <View style={styles.quickActions}>
           {[
             { icon: 'document-text-outline' as const, label: 'Payslips', sub: 'View payslips', route: '/(tabs)/payslips', bg: '#1B3A2D' },
-            { icon: 'megaphone-outline' as const, label: 'Announcements', sub: 'HR updates', route: '/(tabs)/announcements', bg: '#0D3642' },
+            { icon: 'megaphone-outline' as const, label: 'News', sub: 'HR updates', route: '/(tabs)/announcements', bg: '#0D3642' },
             { icon: 'person-circle-outline' as const, label: 'Profile', sub: 'Your info', route: '/(tabs)/profile', bg: '#1A2744' },
           ].map((item) => (
             <TouchableOpacity
@@ -237,11 +237,11 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* Latest Announcement */}
-        {latestAnnouncement ? (
+        {/* Latest News */}
+        {latestNews ? (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Latest Announcement</Text>
+              <Text style={styles.sectionTitle}>Latest News</Text>
               <TouchableOpacity
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onPress={() => router.push('/(tabs)/announcements' as any)}
@@ -253,25 +253,25 @@ export default function DashboardScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.announcementCard}
+              style={styles.newsCard}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onPress={() => router.push(`/announcement/${latestAnnouncement.id}` as any)}
+              onPress={() => router.push(`/announcement/${latestNews.id}` as any)}
               activeOpacity={0.75}
             >
-              {latestAnnouncement.is_pinned ? (
+              {latestNews.is_pinned ? (
                 <View style={styles.pinnedBadge}>
                   <Ionicons name="pin" size={10} color={BSU.goldDark} />
                   <Text style={styles.pinnedText}> Pinned</Text>
                 </View>
               ) : null}
-              <Text style={styles.announcementTitle} numberOfLines={2}>
-                {latestAnnouncement.title}
+              <Text style={styles.newsTitle} numberOfLines={2}>
+                {latestNews.title}
               </Text>
-              <Text style={styles.announcementPreview} numberOfLines={3}>
-                {latestAnnouncement.content.replace(/<[^>]*>/g, '').trim()}
+              <Text style={styles.newsPreview} numberOfLines={3}>
+                {latestNews.content.replace(/<[^>]*>/g, '').trim()}
               </Text>
-              <View style={styles.announcementFooter}>
-                <Text style={styles.announcementReadMore}>Read more</Text>
+              <View style={styles.newsFooter}>
+                <Text style={styles.newsReadMore}>Read more</Text>
                 <Ionicons name="arrow-forward" size={13} color={TEAL.primary} />
               </View>
             </TouchableOpacity>
@@ -384,15 +384,15 @@ function makeStyles(t: AppTheme) {
     payslipName: { fontSize: 13, fontWeight: '600', color: t.textPrimary },
     payslipMeta: { fontSize: 11, color: t.textMuted, marginTop: 2 },
 
-    announcementCard: {
+    newsCard: {
       backgroundColor: t.primaryLight, borderRadius: 12,
       padding: 14, borderWidth: 0.5, borderColor: t.cardBorder,
     },
     pinnedBadge: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
     pinnedText: { fontSize: 11, color: BSU.goldDark, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 },
-    announcementTitle: { fontSize: 14, fontWeight: '700', color: t.textPrimary, lineHeight: 20, marginBottom: 6 },
-    announcementPreview: { fontSize: 13, color: t.textLight, lineHeight: 20 },
-    announcementFooter: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 },
-    announcementReadMore: { fontSize: 12, fontWeight: '700', color: TEAL.primary },
+    newsTitle: { fontSize: 14, fontWeight: '700', color: t.textPrimary, lineHeight: 20, marginBottom: 6 },
+    newsPreview: { fontSize: 13, color: t.textLight, lineHeight: 20 },
+    newsFooter: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 },
+    newsReadMore: { fontSize: 12, fontWeight: '700', color: TEAL.primary },
   });
 }

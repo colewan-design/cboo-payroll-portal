@@ -46,7 +46,7 @@ const SLIDES: Slide[] = [
     iconBg: BSU.goldDark,
     title: 'Stay Informed',
     subtitle:
-      'Receive HR announcements and important updates directly on your device so you never miss a thing.',
+      'Receive HR news and important updates directly on your device so you never miss a thing.',
   },
   {
     id: '4',

@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TEAL, BSU, useAppTheme, AppTheme } from '@/constants/theme';
 
-export type Announcement = {
+export type NewsItem = {
   id: number;
   title: string;
   content: string;
@@ -25,7 +25,7 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').trim();
 }
 
-export default function AnnouncementCard({ item }: { item: Announcement }) {
+export default function NewsCard({ item }: { item: NewsItem }) {
   const router = useRouter();
   const theme = useAppTheme();
   const styles = makeStyles(theme);

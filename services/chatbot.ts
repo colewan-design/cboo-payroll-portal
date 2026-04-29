@@ -22,7 +22,7 @@ const RULES: BotRule[] = [
   {
     patterns: [/\b(help|what can you|what do you|capabilities|features|commands)\b/i],
     response:
-      'I can help you with the following topics:\n\n• 📄 Viewing & downloading payslips\n• 💰 Salary & deduction info\n• 📢 Announcements\n• 🔑 Changing your password\n• 👤 Profile & account info\n\nJust ask me anything!',
+      'I can help you with the following topics:\n\n• 📄 Viewing & downloading payslips\n• 💰 Salary & deduction info\n• 📢 News & updates\n• 🔑 Changing your password\n• 👤 Profile & account info\n\nJust ask me anything!',
     suggestions: [
       'How do I view my payslips?',
       'What are my deductions?',
@@ -77,16 +77,16 @@ const RULES: BotRule[] = [
   {
     patterns: [/\b(announcement|announcements|news|update|memo|notice|bulletin)\b/i],
     response:
-      'To read announcements:\n\n1. Tap the **Announcements** tab at the bottom.\n2. Scroll to browse all posts.\n3. Tap any announcement to read the full content.\n\nPinned announcements appear at the top and are marked with a 📌 pin badge.',
-    suggestions: ['How do I get notified about new announcements?'],
+      'To read news:\n\n1. Tap the **News** tab at the bottom.\n2. Scroll to browse all posts.\n3. Tap any post to read the full content.\n\nPinned posts appear at the top and are marked with a 📌 pin badge.',
+    suggestions: ['How do I get notified about new news posts?'],
   },
 
   // ── Push notifications ────────────────────────────────────────────────────
   {
     patterns: [/\b(notif|notification|push|alert|remind)\b/i],
     response:
-      'The app sends **push notifications** whenever a new announcement is posted. Make sure notifications are enabled for this app in your device\'s Settings to stay updated.',
-    suggestions: ['How do I view announcements?'],
+      'The app sends **push notifications** whenever a new news post is published. Make sure notifications are enabled for this app in your device\'s Settings to stay updated.',
+    suggestions: ['How do I view news?'],
   },
 
   // ── Change password ───────────────────────────────────────────────────────

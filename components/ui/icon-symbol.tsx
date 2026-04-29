@@ -22,6 +22,7 @@ const MAPPING = {
   'person.fill': 'person',
   'person.circle.fill': 'account-circle',
   'bell.fill': 'notifications',
+  'bubble.left.and.bubble.right.fill': 'smart-toy',
 } as IconMapping;
 
 /**

@@ -10,15 +10,15 @@ import {
 } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import AnnouncementCard, { Announcement } from '@/components/AnnouncementCard';
-import { getAnnouncements } from '@/services/api';
+import NewsCard, { NewsItem } from '@/components/NewsCard';
+import { getNews } from '@/services/api';
 import { TEAL, useAppTheme, AppTheme } from '@/constants/theme';
 
-export default function AnnouncementsScreen() {
+export default function NewsScreen() {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
 
-  const [items, setItems] = useState<Announcement[]>([]);
+  const [items, setItems] = useState<NewsItem[]>([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -29,8 +29,8 @@ export default function AnnouncementsScreen() {
   const fetchPage = useCallback(async (p: number, replace: boolean) => {
     try {
       setError(false);
-      const res = await getAnnouncements(p);
-      const data: Announcement[] = res.data.data ?? [];
+      const res = await getNews(p);
+      const data: NewsItem[] = res.data.data ?? [];
       setLastPage(res.data.last_page ?? 1);
       setItems(prev => replace ? data : [...prev, ...data]);
       setPage(p);
@@ -60,7 +60,7 @@ export default function AnnouncementsScreen() {
     return (
       <View style={styles.root}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Announcements</Text>
+          <Text style={styles.headerTitle}>News</Text>
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={TEAL.primary} />
@@ -73,11 +73,11 @@ export default function AnnouncementsScreen() {
     return (
       <View style={styles.root}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Announcements</Text>
+          <Text style={styles.headerTitle}>News</Text>
         </View>
         <View style={styles.center}>
           <Ionicons name="cloud-offline-outline" size={48} color={theme.textMuted} />
-          <Text style={styles.errorText}>Could not load announcements.</Text>
+          <Text style={styles.errorText}>Could not load news.</Text>
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={() => { setLoading(true); fetchPage(1, true).finally(() => setLoading(false)); }}
@@ -93,7 +93,7 @@ export default function AnnouncementsScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Announcements</Text>
+        <Text style={styles.headerTitle}>News</Text>
         {items.length > 0 ? (
           <Text style={styles.headerSub}>{items.length} post{items.length !== 1 ? 's' : ''}</Text>
         ) : null}
@@ -102,7 +102,7 @@ export default function AnnouncementsScreen() {
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => <AnnouncementCard item={item} />}
+        renderItem={({ item }) => <NewsCard item={item} />}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TEAL.primary} />
@@ -112,7 +112,7 @@ export default function AnnouncementsScreen() {
         ListEmptyComponent={
           <View style={styles.center}>
             <Ionicons name="megaphone-outline" size={48} color={theme.textMuted} />
-            <Text style={styles.emptyText}>No announcements yet.</Text>
+            <Text style={styles.emptyText}>No news yet.</Text>
             <Text style={styles.emptySubtext}>Check back later for updates.</Text>
           </View>
         }
