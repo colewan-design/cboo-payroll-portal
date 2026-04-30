@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import NewsCard, { NewsItem } from '@/components/NewsCard';
-import { getNews } from '@/services/api';
+import NewsCard, { NewsItem } from '@/components/AnnouncementCard';
+import { getAnnouncements } from '@/services/api';
 import { TEAL, useAppTheme, AppTheme } from '@/constants/theme';
 
 export default function NewsScreen() {
@@ -29,7 +29,7 @@ export default function NewsScreen() {
   const fetchPage = useCallback(async (p: number, replace: boolean) => {
     try {
       setError(false);
-      const res = await getNews(p);
+      const res = await getAnnouncements(p);
       const data: NewsItem[] = res.data.data ?? [];
       setLastPage(res.data.last_page ?? 1);
       setItems(prev => replace ? data : [...prev, ...data]);

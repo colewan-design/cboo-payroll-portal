@@ -173,7 +173,7 @@ function makeStyles(t: AppTheme) {
       paddingTop: statusBarHeight,
       paddingHorizontal: 16,
       paddingBottom: 12,
-      backgroundColor: TEAL.light,
+      backgroundColor: TEAL.primary,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -197,7 +197,7 @@ function makeStyles(t: AppTheme) {
     },
     welcomeText: {
       fontSize: 12,
-      color: TEAL.darker,
+      color: 'rgba(255,255,255,0.85)',
       fontWeight: '500',
     },
 

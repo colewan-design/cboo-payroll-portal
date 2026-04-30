@@ -289,24 +289,22 @@ function makeStyles(t: AppTheme) {
     root: { flex: 1, backgroundColor: t.bg },
 
     header: {
-      backgroundColor: TEAL.light,
+      backgroundColor: TEAL.primary,
       paddingTop: Platform.OS === 'ios' ? 56 : 40,
       paddingBottom: 14,
       paddingHorizontal: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: TEAL.border,
     },
     headerInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
     bsuLogo: { width: 48, height: 48 },
     headerTextBlock: { justifyContent: 'center', gap: 2 },
     appHeading: { height: 32, width: 120 },
-    welcomeText: { fontSize: 12, color: TEAL.darker, fontWeight: '500' },
+    welcomeText: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
     avatar: {
       width: 42, height: 42, borderRadius: 21,
-      backgroundColor: TEAL.primary,
+      backgroundColor: 'rgba(255,255,255,0.2)',
       alignItems: 'center', justifyContent: 'center',
-      borderWidth: 2, borderColor: TEAL.borderMid,
+      borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
     },
     avatarText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 

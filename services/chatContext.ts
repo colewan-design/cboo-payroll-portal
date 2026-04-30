@@ -1,5 +1,6 @@
-import api from './api';
-import type { User } from '@/context/AuthContext';
+import type { User } from "@/context/AuthContext";
+import api from "./api";
+import { getCache, setCache } from "./cache";
 
 type EmployeeProfile = {
   position: string | null;
@@ -54,46 +55,59 @@ type Announcement = {
 };
 
 function peso(n: number) {
-  return `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+  return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
 }
 
 function formatBreakdown(b: Breakdown): string {
-  const period = [b.payroll_month, b.payroll_year].filter(Boolean).join(' ');
-  const sg = b.salary_grade && b.step ? ` SG${b.salary_grade} S${b.step}` : '';
+  const period = [b.payroll_month, b.payroll_year].filter(Boolean).join(" ");
+  const sg = b.salary_grade && b.step ? ` SG${b.salary_grade} S${b.step}` : "";
   const deductions = b.deductions
     .map((d) => `${d.name}: ${peso(d.amount)}`)
-    .join(', ');
+    .join(", ");
   return `  ${b.payslip_name} (${period}${sg}): Basic ${peso(b.basic_salary)} | Gross ${peso(b.gross_amount)} | ${deductions} | Net ${peso(b.net_amount_due)}`;
 }
 
 function formatAnalytics(a: Analytics): string {
-  const gross = a.total_gross_amount ? peso(Number(a.total_gross_amount)) : '—';
-  const deductions = a.total_deductions ? peso(Number(a.total_deductions)) : '—';
-  const net = a.total_net_amount_due ? peso(Number(a.total_net_amount_due)) : '—';
-  const basic = a.total_basic_salary ? peso(Number(a.total_basic_salary)) : '—';
+  const gross = a.total_gross_amount ? peso(Number(a.total_gross_amount)) : "—";
+  const deductions = a.total_deductions
+    ? peso(Number(a.total_deductions))
+    : "—";
+  const net = a.total_net_amount_due
+    ? peso(Number(a.total_net_amount_due))
+    : "—";
+  const basic = a.total_basic_salary ? peso(Number(a.total_basic_salary)) : "—";
   return `Gross ${gross} | Basic ${basic} | Deductions ${deductions} | Net ${net}`;
 }
 
 export async function buildEmployeeContext(user: User): Promise<string> {
+  const cacheKey = `chat_ctx_${user.employee_id ?? "anon"}`;
+  const cached = await getCache<string>(cacheKey);
+  if (cached) return cached;
+
   const sections: string[] = [];
 
-  const [profileRes, payslipsRes, announcementsRes, analyticsYearRes, analyticsAllRes] =
-    await Promise.allSettled([
-      api.get('/api/employee/me'),
-      api.get('/api/employee/payslips', {
-        params: { selectedEmployeeId: user.employee_id },
-      }),
-      api.get('/api/announcements', { params: { page: 1 } }),
-      api.get('/api/getEmployee/analytics', {
-        params: { selected_employee: user.employee_id, filter: 'this year' },
-      }),
-      api.get('/api/getEmployee/analytics', {
-        params: { selected_employee: user.employee_id },
-      }),
-    ]);
+  const [
+    profileRes,
+    payslipsRes,
+    announcementsRes,
+    analyticsYearRes,
+    analyticsAllRes,
+  ] = await Promise.allSettled([
+    api.get("/api/employee/me"),
+    api.get("/api/employee/payslips", {
+      params: { selectedEmployeeId: user.employee_id },
+    }),
+    api.get("/api/announcements", { params: { page: 1 } }),
+    api.get("/api/getEmployee/analytics", {
+      params: { selected_employee: user.employee_id, filter: "this year" },
+    }),
+    api.get("/api/getEmployee/analytics", {
+      params: { selected_employee: user.employee_id },
+    }),
+  ]);
 
   // Employee profile
-  if (profileRes.status === 'fulfilled') {
+  if (profileRes.status === "fulfilled") {
     const p: EmployeeProfile = profileRes.value.data;
     const parts = [
       p.position && `Position: ${p.position}`,
@@ -102,80 +116,85 @@ export async function buildEmployeeContext(user: User): Promise<string> {
       p.employee_status && `Status: ${p.employee_status}`,
       p.place_of_assignment && `Assignment: ${p.place_of_assignment}`,
     ].filter(Boolean);
-    if (parts.length) sections.push(`Profile: ${parts.join(' | ')}`);
+    if (parts.length) sections.push(`Profile: ${parts.join(" | ")}`);
   }
 
   // Payroll totals (year-to-date + all-time)
   const yearLabel = new Date().getFullYear();
   const ytdLine =
-    analyticsYearRes.status === 'fulfilled' && analyticsYearRes.value.data?.total_gross_amount
+    analyticsYearRes.status === "fulfilled" &&
+    analyticsYearRes.value.data?.total_gross_amount
       ? `  YTD ${yearLabel}: ${formatAnalytics(analyticsYearRes.value.data)}`
       : null;
   const allTimeLine =
-    analyticsAllRes.status === 'fulfilled' && analyticsAllRes.value.data?.total_gross_amount
+    analyticsAllRes.status === "fulfilled" &&
+    analyticsAllRes.value.data?.total_gross_amount
       ? `  All-time: ${formatAnalytics(analyticsAllRes.value.data)}`
       : null;
   const totalLines = [ytdLine, allTimeLine].filter(Boolean);
-  if (totalLines.length) sections.push(`Payroll Totals:\n${totalLines.join('\n')}`);
+  if (totalLines.length)
+    sections.push(`Payroll Totals:\n${totalLines.join("\n")}`);
 
   // Payslip list + breakdowns for last 3
-  if (payslipsRes.status === 'fulfilled') {
+  if (payslipsRes.status === "fulfilled") {
     const payslips: Payslip[] = payslipsRes.value.data?.payslips ?? [];
 
     if (payslips.length > 0) {
       const list = payslips
-        .slice(0, 12)
+        .slice(0, 6)
         .map(
           (p) =>
-            `  - ${p.payslip_name} (${p.payslip_type}${p.payroll_month ? ', ' + p.payroll_month : ''} ${p.payroll_year})`,
+            `  - ${p.payslip_name} (${p.payslip_type}${p.payroll_month ? ", " + p.payroll_month : ""} ${p.payroll_year})`,
         )
-        .join('\n');
+        .join("\n");
       sections.push(`Payslips (${payslips.length} total):\n${list}`);
 
       const breakdownResults = await Promise.allSettled(
         payslips
-          .slice(0, 3)
+          .slice(0, 2)
           .map((p) => api.get(`/api/employee/payslip/breakdown/${p.id}`)),
       );
 
       const breakdowns = breakdownResults
         .filter(
           (r): r is PromiseFulfilledResult<{ data: Breakdown }> =>
-            r.status === 'fulfilled',
+            r.status === "fulfilled",
         )
         .map((r) => r.value.data)
         .filter((b) => b.available)
         .map(formatBreakdown);
 
       if (breakdowns.length > 0)
-        sections.push(`Recent Payslip Details:\n${breakdowns.join('\n')}`);
+        sections.push(`Recent Payslip Details:\n${breakdowns.join("\n")}`);
     }
   }
 
   // Recent announcements
-  if (announcementsRes.status === 'fulfilled') {
+  if (announcementsRes.status === "fulfilled") {
     const items: Announcement[] = announcementsRes.value.data?.data ?? [];
     if (items.length > 0) {
       const formatted = items
-        .slice(0, 5)
+        .slice(0, 3)
         .map((a) => {
           const date = new Date(
             a.published_at ?? a.created_at,
-          ).toLocaleDateString('en-PH', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
+          ).toLocaleDateString("en-PH", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
           });
           const preview = a.content
-            .replace(/<[^>]*>/g, '')
+            .replace(/<[^>]*>/g, "")
             .trim()
-            .slice(0, 80);
-          return `  - [${date}${a.is_pinned ? ' PINNED' : ''}] ${a.title}: ${preview}`;
+            .slice(0, 50);
+          return `  - [${date}${a.is_pinned ? " PINNED" : ""}] ${a.title}: ${preview}`;
         })
-        .join('\n');
+        .join("\n");
       sections.push(`Recent News:\n${formatted}`);
     }
   }
 
-  return sections.join('\n\n');
+  const result = sections.join("\n\n");
+  await setCache(cacheKey, result);
+  return result;
 }

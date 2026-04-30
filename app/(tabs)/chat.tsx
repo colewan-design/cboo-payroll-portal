@@ -25,6 +25,7 @@ import {
   type LLMMessage,
 } from '@/services/llm';
 import { buildEmployeeContext } from '@/services/chatContext';
+import { fetchManual, extractRelevantSection } from '@/services/manualContext';
 
 type Message = {
   id: string;
@@ -59,7 +60,7 @@ function uid() {
   return `msg_${Date.now()}_${++msgCounter}`;
 }
 
-function buildSystemPrompt(user: User | null, employeeContext?: string): string {
+function buildSystemPrompt(user: User | null, employeeContext?: string, manualSection?: string): string {
   const name = user
     ? [user.first_name, user.middle_name, user.last_name, user.suffix]
         .filter(Boolean)
@@ -68,12 +69,15 @@ function buildSystemPrompt(user: User | null, employeeContext?: string): string 
   const payslipSection = employeeContext
     ? `\n\n${employeeContext}`
     : '';
+  const manualNote = manualSection
+    ? `\n\nRelevant documentation:\n${manualSection}`
+    : '';
 
   const dataNote = employeeContext
     ? 'The employee\'s actual payroll records are provided below. Use them to give specific, accurate answers with real figures. Never say you lack access to data.'
     : 'No payroll records loaded yet. Tell the employee their data is still loading and to try again shortly.';
 
-  return `You are a payroll assistant for Benguet State University (BSU) CBOO. Answer questions about payslips, salary, deductions, and app navigation using the data provided. Be concise and friendly.
+  return `You are a chat assistant for Benguet State University (BSU) CBOO payroll. Keep every reply under 3 sentences. Lead with the direct answer — no preamble, no filler, no greetings, no sign-offs, no "Best regards", no letter formatting. Use a short bullet list only when listing 3 or more distinct items. If a question needs more detail, give the key fact first then one supporting sentence.
 
 ${dataNote}
 
@@ -81,7 +85,7 @@ Employee: ${name} | ID: ${user?.employee_id ?? '—'} | Email: ${user?.email ?? 
 
 Deductions: GSIS (~9% of basic salary), PhilHealth (salary bracket), Pag-IBIG (₱100 or 2%), Withholding Tax (BIR table).
 Pay: Basic (Salary Grade & Step) + PERA ₱2,000 + allowances = Gross. Gross − deductions = Net Pay.
-App: Payslips tab → view/download payslips. News tab → memos/updates. Profile tab → change password/sign out.${payslipSection}`;
+App: Payslips tab → view/download payslips. News tab → memos/updates. Profile tab → change password/sign out.${payslipSection}${manualNote}`;
 }
 
 export default function ChatScreen() {
@@ -99,6 +103,7 @@ export default function ChatScreen() {
   // Tracks conversation history fed to the LLM (separate from UI messages)
   const llmHistoryRef = useRef<LLMMessage[]>([]);
   const employeeContextRef = useRef<string>('');
+  const manualRef = useRef<string | null>(null);
   const listRef = useRef<FlatList>(null);
 
   const firstName = user?.first_name ?? 'Employee';
@@ -138,6 +143,7 @@ export default function ChatScreen() {
 
     fetchEmployeeContext();
     initModel();
+    fetchManual().then(m => { manualRef.current = m; }).catch(() => {});
   }, [user?.employee_id]);
 
   async function handleDownload() {
@@ -181,12 +187,15 @@ export default function ChatScreen() {
         ...llmHistoryRef.current,
         { role: 'user', content: trimmed },
       ];
-      // Keep last 10 turns to stay within context window
-      if (llmHistoryRef.current.length > 10)
-        llmHistoryRef.current = llmHistoryRef.current.slice(-10);
+      // Keep last 16 messages (8 turns) — fits comfortably within the 4096-token context
+      if (llmHistoryRef.current.length > 16)
+        llmHistoryRef.current = llmHistoryRef.current.slice(-16);
 
+      const manualSection = manualRef.current
+        ? extractRelevantSection(manualRef.current, trimmed) ?? undefined
+        : undefined;
       const llmMsgs: LLMMessage[] = [
-        { role: 'system', content: buildSystemPrompt(user, employeeContextRef.current || undefined) },
+        { role: 'system', content: buildSystemPrompt(user, employeeContextRef.current || undefined, manualSection) },
         ...llmHistoryRef.current,
       ];
 
@@ -233,6 +242,12 @@ export default function ChatScreen() {
               : m,
           ),
         );
+        // Context was released by llm.ts on error — reload it silently
+        llmHistoryRef.current = [];
+        setModelStatus('loading');
+        loadModel()
+          .then(() => setModelStatus('ready'))
+          .catch(() => setModelStatus('error'));
       }
     },
     [modelStatus, user],
@@ -315,7 +330,19 @@ export default function ChatScreen() {
             <Text style={styles.headerSub}>Payroll Assistant · {firstName}</Text>
           </View>
         </View>
-        <View style={[styles.statusDot, modelStatus === 'ready' && styles.statusDotReady]} />
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.restartBtn}
+            onPress={() => {
+              setMessages([WELCOME]);
+              llmHistoryRef.current = [];
+            }}
+            hitSlop={8}
+          >
+            <Ionicons name="refresh-outline" size={20} color="rgba(255,255,255,0.85)" />
+          </TouchableOpacity>
+          <View style={[styles.statusDot, modelStatus === 'ready' && styles.statusDotReady]} />
+        </View>
       </View>
 
       {/* AI model status banner */}
@@ -501,9 +528,9 @@ function makeStyles(t: AppTheme) {
       paddingTop: STATUS_TOP,
       paddingBottom: 14,
       paddingHorizontal: 16,
-      backgroundColor: TEAL.light,
+      backgroundColor: TEAL.primary,
       borderBottomWidth: 1,
-      borderBottomColor: TEAL.border,
+      borderBottomColor: TEAL.dark,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -511,12 +538,18 @@ function makeStyles(t: AppTheme) {
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     bsuLogo: { width: 44, height: 44 },
     appHeading: { height: 30, width: 110 },
-    headerSub: { fontSize: 11, color: TEAL.darker, fontWeight: '500', marginTop: 1 },
+    headerSub: { fontSize: 11, color: TEAL.textSub, fontWeight: '500', marginTop: 1 },
 
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    restartBtn: {
+      width: 34, height: 34, borderRadius: 17,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center', justifyContent: 'center',
+    },
     statusDot: {
       width: 10, height: 10, borderRadius: 5,
       backgroundColor: '#d1d5db',
-      borderWidth: 2, borderColor: TEAL.light,
+      borderWidth: 2, borderColor: TEAL.primary,
     },
     statusDotReady: { backgroundColor: '#22c55e' },
 

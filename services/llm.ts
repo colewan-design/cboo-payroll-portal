@@ -2,14 +2,14 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { initLlama, type LlamaContext } from 'llama.rn';
 
 export const MODEL_URL =
-  'https://huggingface.co/HuggingFaceTB/SmolLM3-3B-Instruct-GGUF/resolve/main/SmolLM3-3B-Instruct-Q4_K_M.gguf';
+  'https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct-GGUF/resolve/main/smollm2-1.7b-instruct-q4_k_m.gguf';
 
-const MODEL_FILENAME = 'SmolLM3-3B-Instruct-Q4_K_M.gguf';
+const MODEL_FILENAME = 'smollm2-1.7b-instruct-q4_k_m.gguf';
 export const MODEL_PATH = `${FileSystem.documentDirectory}${MODEL_FILENAME}`;
 
 let _ctx: LlamaContext | null = null;
 
-const LEGACY_FILENAMES = ['smollm2-1.7b-instruct-q4_k_m.gguf'];
+const LEGACY_FILENAMES = ['SmolLM3-3B-Instruct-Q4_K_M.gguf'];
 
 export async function isModelDownloaded(): Promise<boolean> {
   const info = await FileSystem.getInfoAsync(MODEL_PATH);
@@ -46,7 +46,7 @@ export async function loadModel(): Promise<void> {
   _ctx = await initLlama({
     model: MODEL_PATH,
     use_mlock: false,
-    n_ctx: 2048,
+    n_ctx: 4096,
     n_batch: 512,
   });
 }
@@ -72,14 +72,21 @@ export async function chat(
   onToken: (token: string) => void,
 ): Promise<void> {
   if (!_ctx) throw new Error('Model not loaded');
-  await _ctx.completion(
-    {
-      messages,
-      n_predict: 512,
-      temperature: 0.7,
-      top_p: 0.9,
-      stop: ['<|im_end|>', '<|endoftext|>'],
-    },
-    (data: { token: string }) => onToken(data.token),
-  );
+  try {
+    await _ctx.completion(
+      {
+        messages,
+        n_predict: 512,
+        temperature: 0.7,
+        top_p: 0.9,
+        stop: ['<|im_end|>', '<|endoftext|>'],
+      },
+      (data: { token: string }) => onToken(data.token),
+    );
+  } catch (err) {
+    // Release the corrupted context so the next call reloads fresh
+    await _ctx.release().catch(() => {});
+    _ctx = null;
+    throw err;
+  }
 }
